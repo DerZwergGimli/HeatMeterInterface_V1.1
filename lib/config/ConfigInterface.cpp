@@ -16,7 +16,7 @@ bool ConfigInterface::init()
     return true;
 }
 
-bool ConfigInterface::loadConfig(struct Configuratrion *conf, struct MeterData (&meterData)[4])
+bool ConfigInterface::loadConfig(struct Configuratrion *config, struct MeterData (&meterData)[4])
 {
     File configFile = SPIFFS.open("/config.json", "r");
     if (!configFile)
@@ -45,10 +45,10 @@ bool ConfigInterface::loadConfig(struct Configuratrion *conf, struct MeterData (
     if (error)
     {
         Serial.println("Failed to parse config file");
-        return conf;
+        return config;
     }
 
-    conf->ID = doc["ID"];
+    config->ID = doc["ID"];
 
     meterData[0].meterID = doc["RJ1_MeterID"];
     meterData[0].RREF_up = doc["RJ1_RREF_T1"];
@@ -84,15 +84,47 @@ bool ConfigInterface::loadConfig(struct Configuratrion *conf, struct MeterData (
     meterData[3].hardware_CounterValue = doc["RJ4_Hardware_CounterValue"];
     meterData[3].water_CounterValue_m3 = doc["RJ4_Water_CounterValue_m3"];
 
-    return false;
+    return true;
 }
 
-bool ConfigInterface::saveConfig(Configuratrion config)
+bool ConfigInterface::saveConfig(struct Configuratrion *conf, struct MeterData (&meterData)[4])
 {
-    StaticJsonDocument<200> doc;
-    doc["ID"] = 100;
-    doc["serverName"] = "api.example.com";
-    doc["accessToken"] = "128du9as8du12eoue8da98h123ueh9h98";
+    StaticJsonDocument<1072> doc;
+    doc["ID"] = conf->ID;
+
+    doc["RJ1_MeterID"] = meterData[0].meterID;
+    doc["RJ1_RREF_T1"] = meterData[0].RREF_up;
+    doc["RJ1_RREF_T2"] = meterData[0].RREF_down;
+    doc["RJ1_MUX_T1"] = meterData[0].mux_up;
+    doc["RJ1_MUX_T2"] = meterData[0].mux_down;
+    doc["RJ1_MUX_R"] = meterData[0].mux_resistance;
+    doc["RJ1_MUX_R_Threshold"] = meterData[0].mux_resistance_threshold;
+    doc["RJ1_Hardware_CounterValue"] = meterData[0].hardware_CounterValue;
+    doc["RJ1_Water_CounterValue_m3"] = meterData[0].water_CounterValue_m3;
+
+    doc["RJ2_MeterID"] = meterData[1].meterID;
+    doc["RJ2_RREF_T1"] = meterData[1].RREF_up;
+    doc["RJ2_RREF_T2"] = meterData[1].RREF_down;
+    doc["RJ2_MUX_T1"] = meterData[1].mux_up;
+    doc["RJ2_MUX_T2"] = meterData[1].mux_down;
+    doc["RJ2_Hardware_CounterValue"] = meterData[1].hardware_CounterValue;
+    doc["RJ2_Water_CounterValue_m3"] = meterData[1].water_CounterValue_m3;
+
+    doc["RJ3_MeterID"] = meterData[2].meterID;
+    doc["RJ3_RREF_T1"] = meterData[2].RREF_up;
+    doc["RJ3_RREF_T2"] = meterData[2].RREF_down;
+    doc["RJ3_MUX_T1"] = meterData[2].mux_up;
+    doc["RJ3_MUX_T2"] = meterData[2].mux_down;
+    doc["RJ3_Hardware_CounterValue"] = meterData[2].hardware_CounterValue;
+    doc["RJ3_Water_CounterValue_m3"] = meterData[2].water_CounterValue_m3;
+
+    doc["RJ4_MeterID"] = meterData[3].meterID;
+    doc["RJ4_RREF_T1"] = meterData[3].RREF_up;
+    doc["RJ4_RREF_T2"] = meterData[3].RREF_down;
+    doc["RJ4_MUX_T1"] = meterData[3].mux_up;
+    doc["RJ4_MUX_T2"] = meterData[3].mux_down;
+    doc["RJ4_Hardware_CounterValue"] = meterData[3].hardware_CounterValue;
+    doc["RJ4_Water_CounterValue_m3"] = meterData[3].water_CounterValue_m3;
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)

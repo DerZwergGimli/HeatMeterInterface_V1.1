@@ -18,14 +18,15 @@
 void displayTask_Callback();
 void measureTask_Callback();
 void sendDataTask_Callback();
-
+void buttonCheck_Callback();
 void readyLED(bool state);
 
-WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
+//WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
 
 Scheduler runner;
-Task displayTask(1100, TASK_FOREVER, &displayTask_Callback, &runner, true);
-Task measureTask(700, TASK_FOREVER, &measureTask_Callback, &runner, true);
+Task displayTask(1000, TASK_FOREVER, &displayTask_Callback, &runner, true);
+Task measureTask(700, TASK_FOREVER, &measureTask_Callback, &runner, false);
+Task buttonTask(200, TASK_FOREVER, &buttonCheck_Callback, &runner, true);
 //Task sendDataTask(10000, TASK_FOREVER, &sendDataTask_Callback, &runner, false);
 
 // Display Configuration
@@ -44,7 +45,7 @@ TemperatureInterface temperatureInterface;
 
 // ShiftRegister Configuration
 ShiftRegisterIO shiftRegisterIO;
-SR_IO sr_io;
+//SR_IO sr_io;
 
 #define RMUX_IN A0
 
@@ -53,6 +54,7 @@ ConfigInterface configInterface;
 Configuratrion config;
 MeterData meterData[4];
 int displayState = 0;
+String buttonState = "X";
 
 void setup()
 {
@@ -61,8 +63,9 @@ void setup()
   delay(100);
 
   shiftRegisterIO.init();
-  shiftRegisterIO.write(&sr_io);
-  shiftRegisterIO.write(&sr_io);
+  shiftRegisterIO.write();
+  //shiftRegisterIO.write(&sr_io);
+  //shiftRegisterIO.write(&sr_io);
 
   //pinMode(RMUX_IN, INPUT);
 
@@ -96,7 +99,6 @@ void setup()
 
   // WiFi.begin(config.wifi_SSID, config.wifi_Password);
 
-  delay(1000);
   //displayTask.enable();
   //measureTask.enable();
   //shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, true);
@@ -107,9 +109,25 @@ void setup()
 
 void loop()
 {
-  //shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, true);
-
+  shiftRegisterIO.led_READY(true);
   runner.execute();
+
+  // digitalWrite(shiftRegister_Latch, LOW);
+  // digitalWrite(shiftRegister_Clock, LOW);
+  // digitalWrite(shiftRegister_IN, LOW);
+  // digitalWrite(shiftRegister_Clock, HIGH);
+  // digitalWrite(shiftRegister_Latch, HIGH);
+
+  // delay(3000);
+  // digitalWrite(shiftRegister_Latch, LOW);
+  // digitalWrite(shiftRegister_Clock, LOW);
+  // digitalWrite(shiftRegister_IN, HIGH);
+  // digitalWrite(shiftRegister_Clock, HIGH);
+  // digitalWrite(shiftRegister_Latch, HIGH);
+  // delay(3000);
+
+  //shiftRegisterIO.allOne();
+  //shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, true);
 
   //1. Display
   //displayInterface.displayMeter(&display, &meterData[0]);
@@ -155,7 +173,8 @@ void loop()
 
 void displayTask_Callback()
 {
-  shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, false);
+  shiftRegisterIO.led_READY(false);
+
   switch (displayState)
   {
   case 0:
@@ -182,6 +201,19 @@ void displayTask_Callback()
     displayInterface.displayMeter(&display, &meterData[3]);
     displayState = 1;
     break;
+  case 5: //Show SettingsMain
+    displayState = displayInterface.displaySettingsMain(&display, buttonState);
+    buttonState = "X";
+    break;
+  case 6: // Edit values for data aquire
+    displayState = displayInterface.dsiplayConfigInterface(&display, buttonState, meterData);
+    buttonState = "X";
+    break;
+  case 100: // Show screen when saving data back to flash
+    displayInterface.displaySavingScreen(&display);
+    configInterface.saveConfig(&config, meterData);
+    displayState = 1;
+    break;
 
   default:
     break;
@@ -190,20 +222,20 @@ void displayTask_Callback()
 
 void measureTask_Callback()
 {
-  shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, false);
+  shiftRegisterIO.led_READY(false);
 
   unsigned long start = millis();
 
-  shiftRegisterIO.led_RJ1(&shiftRegisterIO, &sr_io, true);
-  temperatureInterface.readTemperature(thermo, &sr_io, &meterData[0]);
-  shiftRegisterIO.checkMeterResistance(&shiftRegisterIO, &sr_io, &meterData[0]);
+  shiftRegisterIO.led_RJ1(true);
+  temperatureInterface.readTemperature(thermo, &meterData[0]);
+  shiftRegisterIO.checkMeterResistance(&meterData[0]);
   if (meterData[0].waterMeterState)
   {
-    shiftRegisterIO.led_statusRJ1(&shiftRegisterIO, &sr_io, true);
+    shiftRegisterIO.led_statusRJ1(true);
   }
   else
   {
-    shiftRegisterIO.led_statusRJ1(&shiftRegisterIO, &sr_io, false);
+    shiftRegisterIO.led_statusRJ1(false);
   }
   if (meterData[0].mux_resistance_edgeDetect)
   {
@@ -213,7 +245,7 @@ void measureTask_Callback()
     Serial.println(meterData->absolute_HeatEnergy_MWh);
   }
 
-  shiftRegisterIO.led_RJ1(&shiftRegisterIO, &sr_io, false);
+  shiftRegisterIO.led_RJ1(false);
 
   //shiftRegisterIO.led_RJ2(&shiftRegisterIO, &sr_io, true);
   //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[1]);
@@ -269,7 +301,7 @@ void sendDataTask_Callback()
   // }
   //Serial.println("Connected to the WiFi network");
 
-  shiftRegisterIO.led_WIFI(&shiftRegisterIO, &sr_io, true);
+  //shiftRegisterIO.led_WIFI(&shiftRegisterIO, &sr_io, true);
   client.setServer(config.mqtt_ServerAddress, config.mqtt_Port);
   //client.setCallback(callback
 
@@ -287,7 +319,7 @@ void sendDataTask_Callback()
 
       Serial.print("failed with state ");
       Serial.print(client.state());
-      shiftRegisterIO.led_ERROR(&shiftRegisterIO, &sr_io, true);
+      shiftRegisterIO.led_ERROR(true);
       //delay(2000);
     }
 
@@ -325,13 +357,38 @@ void sendDataTask_Callback()
 
   measureTask.enable();
 
-  shiftRegisterIO.led_WIFI(&shiftRegisterIO, &sr_io, false);
+  shiftRegisterIO.led_WIFI(false);
 
-  shiftRegisterIO.led_ERROR(&shiftRegisterIO, &sr_io, false);
+  shiftRegisterIO.led_ERROR(false);
 }
 
-void readyLED(bool state)
+void buttonCheck_Callback()
 {
-  sr_io.LED_Ready = state;
-  shiftRegisterIO.write(&sr_io);
+  shiftRegisterIO.led_READY(false);
+  //buttonState = "X";
+
+  if (shiftRegisterIO.checkButton("UP") == "UP")
+  {
+    Serial.println("UP_Buton_Pressed");
+    buttonState = "UP";
+  }
+
+  if (shiftRegisterIO.checkButton("DOWN") == "DOWN")
+  {
+    Serial.println("DOWN_Buton_Pressed");
+    buttonState = "DOWN";
+  }
+
+  if (shiftRegisterIO.checkButton("SELECT") == "SELECT")
+  {
+    Serial.println("SELECT_Button_Presses");
+    buttonState = "SELECT";
+  }
+
+  // Go into Settings
+  if ((displayState == (1 || 2 || 3 || 4)) && (buttonState == "SELECT"))
+  {
+    displayState = 5;
+    buttonState = "X";
+  }
 }

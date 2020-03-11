@@ -56,7 +56,7 @@ public:
 
     bool init();
     bool loadConfig(struct Configuratrion *config, MeterData (&meterData)[4]);
-    bool saveConfig(Configuratrion config);
+    bool saveConfig(Configuratrion *config, MeterData (&meterData)[4]);
     void serialPrintConfig(Configuratrion config);
 };
 

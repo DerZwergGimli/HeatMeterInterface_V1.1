@@ -4,7 +4,7 @@
 
 struct SR_IO
 {
-    bool PT100Reader_Enable = true;
+    bool PT100Reader_Enable = false;
     bool TMuxS0 = false;
     bool TMuxS1 = false;
     bool TMuxS2 = false;
@@ -20,15 +20,15 @@ struct SR_IO
     bool LED_RJ3 = false;
     bool LED_RJ2 = false;
     bool LED_RJ1 = false;
-    bool OLED_Enbable = true;
+    bool OLED_Enbable = false;
 
-    bool RJ4_Counter = true; // Keep this mostly true using pnp-transostor
+    bool RJ4_Counter = false; // Keep this mostly true using pnp-transostor
     bool RJ4_Status = false;
-    bool RJ3_Counter = true; // Keep this mostly true using pnp-transostor
+    bool RJ3_Counter = false; // Keep this mostly true using pnp-transostor
     bool RJ3_Status = false;
-    bool RJ2_Counter = true; // Keep this mostly true using pnp-transostor
+    bool RJ2_Counter = false; // Keep this mostly true using pnp-transostor
     bool RJ2_Status = false;
-    bool RJ1_Counter = true; // Keep this mostly true using pnp-transostor
+    bool RJ1_Counter = false; // Keep this mostly true using pnp-transostor
     bool RJ1_Status = false;
 };
 
@@ -44,24 +44,24 @@ public:
     void allZero();
 
     void ledBlink(int time);
-    void r_MuxSelect(struct SR_IO *sr_io, int channel);
-    void t_MuxSelect(struct SR_IO *sr_io, int channel);
-    void write(struct SR_IO *sr_io);
+    void r_MuxSelect(int channel);
+    void t_MuxSelect(int channel);
+    void write();
 
-    void checkMeterResistance(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, struct MeterData *meterData);
-    String checkButton(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, String name);
+    void checkMeterResistance(struct MeterData *meterData);
+    String checkButton(String name);
 
     // LED IO_Config
-    void led_ERROR(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_READY(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_WIFI(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_RJ1(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_RJ2(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_RJ3(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_RJ4(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_statusRJ1(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_statusRJ2(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_statusRJ3(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
-    void led_statusRJ4(struct ShiftRegisterIO *shiftRegisterIO, struct SR_IO *sr_io, bool toggle);
+    void led_ERROR(bool toggle);
+    void led_READY(bool toggle);
+    void led_WIFI(bool toggle);
+    void led_RJ1(bool toggle);
+    void led_RJ2(bool toggle);
+    void led_RJ3(bool toggle);
+    void led_RJ4(bool toggle);
+    void led_statusRJ1(bool toggle);
+    void led_statusRJ2(bool toggle);
+    void led_statusRJ3(bool toggle);
+    void led_statusRJ4(bool toggle);
 };
 #endif

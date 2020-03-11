@@ -14,7 +14,7 @@ void TemperatureInterface::init(Adafruit_MAX31865 thermo)
     thermo.begin(MAX31865_2WIRE); // set to 2WIRE or 4WIRE as necessary
 }
 
-void TemperatureInterface::readTemperature(Adafruit_MAX31865 thermo, struct SR_IO *sr_io, struct MeterData *meterData)
+void TemperatureInterface::readTemperature(Adafruit_MAX31865 thermo, struct MeterData *meterData)
 {
     // int : port = jack number either 1...4
     // int : sensor = number of sensor either 1 or 2
@@ -24,8 +24,8 @@ void TemperatureInterface::readTemperature(Adafruit_MAX31865 thermo, struct SR_I
     ShiftRegisterIO shiftRegisterIO;
 
     //      UP
-    shiftRegisterIO.t_MuxSelect(sr_io, meterData->mux_up);
-    shiftRegisterIO.write(sr_io);
+    shiftRegisterIO.t_MuxSelect(meterData->mux_up);
+    shiftRegisterIO.write();
     float temp_up = thermo.temperature(RNOMINAL, meterData->RREF_up);
 
     if (meterData->temperature_up_Celcius_mean == 0)
@@ -36,7 +36,6 @@ void TemperatureInterface::readTemperature(Adafruit_MAX31865 thermo, struct SR_I
         meterData->temperature_up_Celcius_numberOfPoints = 0;
     }
 
-
     meterData->temperature_up_Celcius = temp_up;
     //meterData->temperature_up_Celcius_mean = ((float)meterData->temperature_up_Celcius_smooth.calc25(temp_up * 100)) / 100;
     meterData->temperature_up_Celcius_sum += temp_up;
@@ -44,8 +43,8 @@ void TemperatureInterface::readTemperature(Adafruit_MAX31865 thermo, struct SR_I
     meterData->temperature_up_Celcius_mean = meterData->temperature_up_Celcius_sum / meterData->temperature_up_Celcius_numberOfPoints;
 
     //      DOWN
-    shiftRegisterIO.t_MuxSelect(sr_io, meterData->mux_down);
-    shiftRegisterIO.write(sr_io);
+    shiftRegisterIO.t_MuxSelect(meterData->mux_down);
+    shiftRegisterIO.write();
     float temp_down = thermo.temperature(RNOMINAL, meterData->RREF_down);
     if (meterData->temperature_down_Celcius_mean == 0)
     {

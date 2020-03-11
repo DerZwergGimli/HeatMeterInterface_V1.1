@@ -8,6 +8,6 @@ class TemperatureInterface
 public:
     TemperatureInterface();
     void init(Adafruit_MAX31865 thermo);
-    void readTemperature(Adafruit_MAX31865 thermo, SR_IO *sr_io, struct MeterData *meterData);
+    void readTemperature(Adafruit_MAX31865 thermo, struct MeterData *meterData);
 };
 #endif
