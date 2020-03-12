@@ -180,11 +180,11 @@ int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String b
         {
             if (selected_Entry == 1)
             {
-                meterData[selected_Interface].RREF_up++;
+                meterData[selected_Interface - 1].RREF_up++;
             }
             if (selected_Entry == 2)
             {
-                meterData[selected_Interface].RREF_down++;
+                meterData[selected_Interface - 1].RREF_down++;
             }
         }
     }
@@ -199,11 +199,11 @@ int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String b
         {
             if (selected_Entry == 1)
             {
-                meterData[selected_Interface].RREF_up--;
+                meterData[selected_Interface - 1].RREF_up--;
             }
             if (selected_Entry == 2)
             {
-                meterData[selected_Interface].RREF_down--;
+                meterData[selected_Interface - 1].RREF_down--;
             }
         }
     }
@@ -266,9 +266,9 @@ int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String b
     }
 
     display->print("T_UP_RREF:   ");
-    display->println(meterData[selected_Interface].RREF_up);
+    display->println(meterData[selected_Interface - 1].RREF_up);
     display->print("  T_UP:        ");
-    display->println(meterData[selected_Interface].temperature_up_Celcius);
+    display->println(meterData[selected_Interface - 1].temperature_up_Celcius);
 
     if (selected_Entry == 2)
     {
@@ -287,9 +287,9 @@ int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String b
     }
 
     display->print("T_DOWN_RREF: ");
-    display->println(meterData[selected_Interface].RREF_down);
+    display->println(meterData[selected_Interface - 1].RREF_down);
     display->print("  T_DOWN:      ");
-    display->println(meterData[selected_Interface].temperature_down_Celcius);
+    display->println(meterData[selected_Interface - 1].temperature_down_Celcius);
 
     display->display();
     return 6;

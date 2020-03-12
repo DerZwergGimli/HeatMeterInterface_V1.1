@@ -24,9 +24,9 @@ void readyLED(bool state);
 //WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
 
 Scheduler runner;
-Task displayTask(1000, TASK_FOREVER, &displayTask_Callback, &runner, true);
-Task measureTask(700, TASK_FOREVER, &measureTask_Callback, &runner, false);
-Task buttonTask(200, TASK_FOREVER, &buttonCheck_Callback, &runner, true);
+Task displayTask(150, TASK_FOREVER, &displayTask_Callback, &runner, false);
+Task measureTask(500, TASK_FOREVER, &measureTask_Callback, &runner, false);
+Task buttonTask(333, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
 //Task sendDataTask(10000, TASK_FOREVER, &sendDataTask_Callback, &runner, false);
 
 // Display Configuration
@@ -40,8 +40,6 @@ DisplayInterface displayInterface;
 Adafruit_MAX31865 thermo = Adafruit_MAX31865(D8, D7, D6, D5);
 TemperatureInterface temperatureInterface;
 //#define RREF 430.0  old Version
-#define RREF 240.0
-#define RNOMINAL 100.0
 
 // ShiftRegister Configuration
 ShiftRegisterIO shiftRegisterIO;
@@ -80,8 +78,8 @@ void setup()
 
   configInterface.init();
   configInterface.loadConfig(&config, meterData);
-
-  temperatureInterface.init(thermo);
+  thermo.begin(MAX31865_2WIRE);
+  //temperatureInterface.init(thermo);
 
   //runner.init();
   //runner.addTask(displayTask);
@@ -102,7 +100,11 @@ void setup()
   //displayTask.enable();
   //measureTask.enable();
   //shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, true);
-  runner.startNow();
+  delay(500);
+  displayTask.enable();
+  measureTask.enable();
+  buttonTask.enable();
+  //runner.startNow();
 
   //shiftRegisterIO.ledBlink(1000);
 }
@@ -173,7 +175,7 @@ void loop()
 
 void displayTask_Callback()
 {
-  shiftRegisterIO.led_READY(false);
+  //shiftRegisterIO.led_READY(false);
 
   switch (displayState)
   {
@@ -222,30 +224,52 @@ void displayTask_Callback()
 
 void measureTask_Callback()
 {
-  shiftRegisterIO.led_READY(false);
+  //shiftRegisterIO.led_READY(false);
 
   unsigned long start = millis();
 
   shiftRegisterIO.led_RJ1(true);
-  temperatureInterface.readTemperature(thermo, &meterData[0]);
-  shiftRegisterIO.checkMeterResistance(&meterData[0]);
-  if (meterData[0].waterMeterState)
-  {
-    shiftRegisterIO.led_statusRJ1(true);
-  }
-  else
-  {
-    shiftRegisterIO.led_statusRJ1(false);
-  }
-  if (meterData[0].mux_resistance_edgeDetect)
-  {
-    meterData->water_CounterValue_m3 += 5;
-    meterData->delta_HeatEnergy_J += 4200 * 5 * (meterData->temperature_up_Celcius_mean - meterData->temperature_down_Celcius_mean);
-    meterData->absolute_HeatEnergy_MWh = meterData->delta_HeatEnergy_J * 0.000000000277778;
-    Serial.println(meterData->absolute_HeatEnergy_MWh);
-  }
+  shiftRegisterIO.led_statusRJ1(true);
 
-  shiftRegisterIO.led_RJ1(false);
+  float RNOMINAL = 100.0;
+
+  shiftRegisterIO.t_MuxSelect(meterData[0].mux_up);
+  shiftRegisterIO.write();
+
+  float temp_up = thermo.temperature(RNOMINAL, meterData[0].RREF_up);
+  Serial.println(temp_up);
+
+  if (meterData->temperature_up_Celcius_mean == 0)
+  {
+    //meterData->temperature_up_Celcius_smooth.setInitial(temp_up * 100);
+    meterData->temperature_up_Celcius_mean = temp_up;
+    meterData->temperature_up_Celcius_sum = 0;
+    meterData->temperature_up_Celcius_numberOfPoints = 0;
+  }
+  meterData->temperature_up_Celcius = temp_up;
+  //meterData->temperature_up_Celcius_mean = ((float)meterData->temperature_up_Celcius_smooth.calc25(temp_up * 100)) / 100;
+  meterData->temperature_up_Celcius_sum += temp_up;
+  meterData->temperature_up_Celcius_numberOfPoints++;
+  meterData->temperature_up_Celcius_mean = meterData->temperature_up_Celcius_sum / meterData->temperature_up_Celcius_numberOfPoints;
+
+  // temperatureInterface.readTemperature(thermo, &meterData[0]);
+  // shiftRegisterIO.checkMeterResistance(&meterData[0]);
+  // if (meterData[0].waterMeterState)
+  // {
+  //   shiftRegisterIO.led_statusRJ1(true);
+  // }
+  // else
+  // {
+  //   shiftRegisterIO.led_statusRJ1(false);
+  // }
+  // if (meterData[0].mux_resistance_edgeDetect)
+  // {
+  //   meterData->water_CounterValue_m3 += 5;
+  //   meterData->delta_HeatEnergy_J += 4200 * 5 * (meterData->temperature_up_Celcius_mean - meterData->temperature_down_Celcius_mean);
+  //   meterData->absolute_HeatEnergy_MWh = meterData->delta_HeatEnergy_J * 0.000000000277778;
+  //   Serial.println(meterData->absolute_HeatEnergy_MWh);
+  // }
+  // shiftRegisterIO.led_RJ1(false);
 
   //shiftRegisterIO.led_RJ2(&shiftRegisterIO, &sr_io, true);
   //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[1]);
@@ -364,7 +388,7 @@ void sendDataTask_Callback()
 
 void buttonCheck_Callback()
 {
-  shiftRegisterIO.led_READY(false);
+  //shiftRegisterIO.led_READY(false);
   //buttonState = "X";
 
   if (shiftRegisterIO.checkButton("UP") == "UP")
