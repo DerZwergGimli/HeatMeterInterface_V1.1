@@ -9,7 +9,7 @@
     "RJ1_MUX_T1": 5,
     "RJ1_MUX_T2": 7,
     "RJ1_MUX_R": 5,
-    "RJ1_MUX_R_Threshold": 100,
+    "RJ1_MUX_R_Threshold": 900,
     "RJ2_MeterID": 2,
     "RJ2_Hardware_CounterValue": 10000,
     "RJ2_Water_CounterValue_m3": 10000.0,

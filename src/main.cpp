@@ -229,47 +229,59 @@ void measureTask_Callback()
   unsigned long start = millis();
 
   shiftRegisterIO.led_RJ1(true);
-  shiftRegisterIO.led_statusRJ1(true);
 
   float RNOMINAL = 100.0;
 
+  // UP
   shiftRegisterIO.t_MuxSelect(meterData[0].mux_up);
   shiftRegisterIO.write();
 
   float temp_up = thermo.temperature(RNOMINAL, meterData[0].RREF_up);
-  Serial.println(temp_up);
-
-  if (meterData->temperature_up_Celcius_mean == 0)
+  if (meterData[0].temperature_up_Celcius_mean == 0)
   {
-    //meterData->temperature_up_Celcius_smooth.setInitial(temp_up * 100);
-    meterData->temperature_up_Celcius_mean = temp_up;
-    meterData->temperature_up_Celcius_sum = 0;
-    meterData->temperature_up_Celcius_numberOfPoints = 0;
+    meterData[0].temperature_up_Celcius_mean = temp_up;
+    meterData[0].temperature_up_Celcius_sum = 0;
+    meterData[0].temperature_up_Celcius_numberOfPoints = 0;
   }
-  meterData->temperature_up_Celcius = temp_up;
-  //meterData->temperature_up_Celcius_mean = ((float)meterData->temperature_up_Celcius_smooth.calc25(temp_up * 100)) / 100;
-  meterData->temperature_up_Celcius_sum += temp_up;
-  meterData->temperature_up_Celcius_numberOfPoints++;
-  meterData->temperature_up_Celcius_mean = meterData->temperature_up_Celcius_sum / meterData->temperature_up_Celcius_numberOfPoints;
+  meterData[0].temperature_up_Celcius = temp_up;
+  meterData[0].temperature_up_Celcius_sum += temp_up;
+  meterData[0].temperature_up_Celcius_numberOfPoints++;
+  meterData[0].temperature_up_Celcius_mean = meterData[0].temperature_up_Celcius_sum / meterData[0].temperature_up_Celcius_numberOfPoints;
 
-  // temperatureInterface.readTemperature(thermo, &meterData[0]);
-  // shiftRegisterIO.checkMeterResistance(&meterData[0]);
-  // if (meterData[0].waterMeterState)
-  // {
-  //   shiftRegisterIO.led_statusRJ1(true);
-  // }
-  // else
-  // {
-  //   shiftRegisterIO.led_statusRJ1(false);
-  // }
-  // if (meterData[0].mux_resistance_edgeDetect)
-  // {
-  //   meterData->water_CounterValue_m3 += 5;
-  //   meterData->delta_HeatEnergy_J += 4200 * 5 * (meterData->temperature_up_Celcius_mean - meterData->temperature_down_Celcius_mean);
-  //   meterData->absolute_HeatEnergy_MWh = meterData->delta_HeatEnergy_J * 0.000000000277778;
-  //   Serial.println(meterData->absolute_HeatEnergy_MWh);
-  // }
-  // shiftRegisterIO.led_RJ1(false);
+  //      DOWN
+  shiftRegisterIO.t_MuxSelect(meterData[0].mux_down);
+  shiftRegisterIO.write();
+
+  float temp_down = thermo.temperature(RNOMINAL, meterData[0].RREF_down);
+  if (meterData[0].temperature_down_Celcius_mean == 0)
+  {
+    meterData[0].temperature_down_Celcius_mean = temp_down;
+    meterData[0].temperature_down_Celcius_sum = 0;
+    meterData[0].temperature_down_Celcius_numberOfPoints = 0;
+  }
+
+  meterData[0].temperature_down_Celcius = temp_down;
+  meterData[0].temperature_down_Celcius_sum += temp_down;
+  meterData[0].temperature_down_Celcius_numberOfPoints++;
+  meterData[0].temperature_down_Celcius_mean = meterData[0].temperature_down_Celcius_sum / meterData[0].temperature_down_Celcius_numberOfPoints;
+
+  shiftRegisterIO.checkMeterResistance(&meterData[0]);
+  if (meterData[0].waterMeterState)
+  {
+    shiftRegisterIO.led_statusRJ1(true);
+  }
+  else
+  {
+    shiftRegisterIO.led_statusRJ1(false);
+  }
+  if (meterData[0].mux_resistance_edgeDetect)
+  {
+    meterData[0].water_CounterValue_m3 += 5;
+    meterData[0].delta_HeatEnergy_J += 4200 * 5 * (meterData[0].temperature_up_Celcius_mean - meterData[0].temperature_down_Celcius_mean);
+    meterData[0].absolute_HeatEnergy_MWh = meterData[0].delta_HeatEnergy_J * 0.000000000277778;
+    //Serial.println(meterData->absolute_HeatEnergy_MWh);
+  }
+  shiftRegisterIO.led_RJ1(false);
 
   //shiftRegisterIO.led_RJ2(&shiftRegisterIO, &sr_io, true);
   //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[1]);
