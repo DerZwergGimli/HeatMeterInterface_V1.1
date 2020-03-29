@@ -1,16 +1,17 @@
 #include "ConfigInterface.h"
 #include <ArduinoJson.h>
+#include <ArduinoLog.h>
 #include "FS.h"
 
 ConfigInterface ::ConfigInterface() {}
 
 bool ConfigInterface::init()
 {
-    Serial.println("Mounting FS...");
+    Log.notice("Mounting FileSystem");
 
     if (!SPIFFS.begin())
     {
-        Serial.println("Failed to mount file system");
+        Log.fatal("Failed to mount file system");
         return false;
     }
     return true;
@@ -21,14 +22,14 @@ bool ConfigInterface::loadConfig(struct Configuratrion *config, struct MeterData
     File configFile = SPIFFS.open("/config.json", "r");
     if (!configFile)
     {
-        Serial.println("Failed to open config file");
+        Log.fatal("Failed to open config file");
         return false;
     }
 
     int size = configFile.size();
     if (size > 2048)
     {
-        Serial.println("Config file size is too large");
+        Log.error("Config file size is too large");
         return false;
     }
 
@@ -44,7 +45,7 @@ bool ConfigInterface::loadConfig(struct Configuratrion *config, struct MeterData
     auto error = deserializeJson(doc, buf.get());
     if (error)
     {
-        Serial.println("Failed to parse config file");
+        Log.fatal("Failed to parse config file");
         return config;
     }
 
@@ -129,7 +130,7 @@ bool ConfigInterface::saveConfig(struct Configuratrion *conf, struct MeterData (
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)
     {
-        Serial.println("Failed to open config file for writing");
+        Log.fatal("Failed to open config file for writing");
         return false;
     }
 

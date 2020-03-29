@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <Arduino.h>
+#include <ArduinoLog.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "ShiftRegisterIO.h"
@@ -17,6 +18,7 @@
 //Delegates for platform.io
 void displayTask_Callback();
 void measureTask_Callback();
+void readInterface();
 void sendDataTask_Callback();
 void buttonCheck_Callback();
 void readyLED(bool state);
@@ -57,8 +59,14 @@ String buttonState = "X";
 void setup()
 {
   Serial.begin(115200);
-  Serial.print("Starting...");
+  while (!Serial && !Serial.available())
+  {
+  }
   delay(100);
+  Log.begin(LOG_LEVEL_VERBOSE, &Serial);
+  Log.notice(F(CR "******************************************" CR));
+  Log.notice("***          Starting SYSTEM                " CR);
+  Log.notice("*********************** " CR);
 
   shiftRegisterIO.init();
   shiftRegisterIO.write();
@@ -69,9 +77,9 @@ void setup()
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   {
-    Serial.println(F("SSD1306 allocation failed"));
+    Log.error((F("SSD1306 allocation failed")));
     for (;;)
-      Serial.print("Error while connecting to Display"); // Don't proceed, loop forever
+      Log.fatal("Error while connecting to Display");
   }
 
   displayInterface.boot(&display);
@@ -81,9 +89,6 @@ void setup()
   thermo.begin(MAX31865_2WIRE);
   //temperatureInterface.init(thermo);
 
-  //runner.init();
-  //runner.addTask(displayTask);
-  //runner.addTask(measureTask);
   // connectedWIFIEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
   //   Serial.print("Station connected, IP: ");
   //   Serial.println(WiFi.localIP());
@@ -97,80 +102,17 @@ void setup()
 
   // WiFi.begin(config.wifi_SSID, config.wifi_Password);
 
-  //displayTask.enable();
-  //measureTask.enable();
-  //shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, true);
   delay(500);
   displayTask.enable();
   measureTask.enable();
   buttonTask.enable();
-  //runner.startNow();
-
-  //shiftRegisterIO.ledBlink(1000);
+  runner.startNow();
 }
 
 void loop()
 {
   shiftRegisterIO.led_READY(true);
   runner.execute();
-
-  // digitalWrite(shiftRegister_Latch, LOW);
-  // digitalWrite(shiftRegister_Clock, LOW);
-  // digitalWrite(shiftRegister_IN, LOW);
-  // digitalWrite(shiftRegister_Clock, HIGH);
-  // digitalWrite(shiftRegister_Latch, HIGH);
-
-  // delay(3000);
-  // digitalWrite(shiftRegister_Latch, LOW);
-  // digitalWrite(shiftRegister_Clock, LOW);
-  // digitalWrite(shiftRegister_IN, HIGH);
-  // digitalWrite(shiftRegister_Clock, HIGH);
-  // digitalWrite(shiftRegister_Latch, HIGH);
-  // delay(3000);
-
-  //shiftRegisterIO.allOne();
-  //shiftRegisterIO.led_READY(&shiftRegisterIO, &sr_io, true);
-
-  //1. Display
-  //displayInterface.displayMeter(&display, &meterData[0]);
-  //2.1 Take Measurements
-  //2.2 Calculate
-  //3. Send Measuremnts
-  //4. check user input
-  // do all over again
-
-  //display.clearDisplay();
-  //display.setCursor(10, 10);
-
-  // int analogValue = analogRead(RMUX_IN);
-  // Serial.print("Analaog: ");
-  // Serial.println(String(analogValue));
-  // //display.println(analogValue);
-
-  // channel_RJ1.temperature_up_Celcius = temperatureInterface.readTemperature(thermo, RNOMINAL, config.RREF_RJ1_T1, true);
-
-  // sr_io = shiftRegisterIO.t_MuxSelect(sr_io, 7);
-  // shiftRegisterIO.write(sr_io);
-  // channel_RJ1.temperature_down_Celcius = temperatureInterface.readTemperature(&thermo, RNOMINAL, config.RREF_RJ1_T2, true);
-
-  // meterData[0].mux_up = 5;
-  // meterData[0].mux_down = 7;
-  // Serial.print(meterData[0].RREF_up);
-  // //meterData[0].RREF_up = 240;
-  //meterData[0].RREF_down = 240;
-  //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[0]);
-
-  // Serial.print("UP ");
-  // Serial.println(String(meterData[0].temperature_up_Celcius));
-  // Serial.print("DOWN ");
-  // Serial.println(String(meterData[0].temperature_down_Celcius));
-
-  //readTemperature(0, 0, true);
-  //sr_io = shiftRegisterIO.t_MuxSelect(sr_io, -1);
-  //shiftRegisterIO.write(sr_io);
-
-  //display.display();
-  //delay(1000);
 }
 
 void displayTask_Callback()
@@ -204,11 +146,15 @@ void displayTask_Callback()
     displayState = 1;
     break;
   case 5: //Show SettingsMain
-    displayState = displayInterface.displaySettingsMain(&display, buttonState);
+    displayState = displayInterface.displaySettingsSelectInterface(&display, buttonState);
     buttonState = "X";
     break;
-  case 6: // Edit values for data aquire
-    displayState = displayInterface.dsiplayConfigInterface(&display, buttonState, meterData);
+  case 6: // Select wether to edit Temp or Resistance
+    displayState = displayInterface.displaySettingsSelectTempOrRes(&display, buttonState);
+    buttonState = "X";
+    break;
+  case 7: // Edit values for data aquire
+    displayState = displayInterface.displayConfigTemperature(&display, buttonState, meterData);
     buttonState = "X";
     break;
   case 100: // Show screen when saving data back to flash
@@ -218,52 +164,17 @@ void displayTask_Callback()
     break;
 
   default:
+    displayState = 0;
     break;
   }
 }
 
 void measureTask_Callback()
 {
-  //shiftRegisterIO.led_READY(false);
-
   unsigned long start = millis();
-
   shiftRegisterIO.led_RJ1(true);
 
-  float RNOMINAL = 100.0;
-
-  // UP
-  shiftRegisterIO.t_MuxSelect(meterData[0].mux_up);
-  shiftRegisterIO.write();
-
-  float temp_up = thermo.temperature(RNOMINAL, meterData[0].RREF_up);
-  if (meterData[0].temperature_up_Celcius_mean == 0)
-  {
-    meterData[0].temperature_up_Celcius_mean = temp_up;
-    meterData[0].temperature_up_Celcius_sum = 0;
-    meterData[0].temperature_up_Celcius_numberOfPoints = 0;
-  }
-  meterData[0].temperature_up_Celcius = temp_up;
-  meterData[0].temperature_up_Celcius_sum += temp_up;
-  meterData[0].temperature_up_Celcius_numberOfPoints++;
-  meterData[0].temperature_up_Celcius_mean = meterData[0].temperature_up_Celcius_sum / meterData[0].temperature_up_Celcius_numberOfPoints;
-
-  //      DOWN
-  shiftRegisterIO.t_MuxSelect(meterData[0].mux_down);
-  shiftRegisterIO.write();
-
-  float temp_down = thermo.temperature(RNOMINAL, meterData[0].RREF_down);
-  if (meterData[0].temperature_down_Celcius_mean == 0)
-  {
-    meterData[0].temperature_down_Celcius_mean = temp_down;
-    meterData[0].temperature_down_Celcius_sum = 0;
-    meterData[0].temperature_down_Celcius_numberOfPoints = 0;
-  }
-
-  meterData[0].temperature_down_Celcius = temp_down;
-  meterData[0].temperature_down_Celcius_sum += temp_down;
-  meterData[0].temperature_down_Celcius_numberOfPoints++;
-  meterData[0].temperature_down_Celcius_mean = meterData[0].temperature_down_Celcius_sum / meterData[0].temperature_down_Celcius_numberOfPoints;
+  temperatureInterface.readTemperature(&shiftRegisterIO, thermo, &meterData[0]);
 
   shiftRegisterIO.checkMeterResistance(&meterData[0]);
   if (meterData[0].waterMeterState)
@@ -279,7 +190,6 @@ void measureTask_Callback()
     meterData[0].water_CounterValue_m3 += 5;
     meterData[0].delta_HeatEnergy_J += 4200 * 5 * (meterData[0].temperature_up_Celcius_mean - meterData[0].temperature_down_Celcius_mean);
     meterData[0].absolute_HeatEnergy_MWh = meterData[0].delta_HeatEnergy_J * 0.000000000277778;
-    //Serial.println(meterData->absolute_HeatEnergy_MWh);
   }
   shiftRegisterIO.led_RJ1(false);
 
@@ -299,6 +209,10 @@ void measureTask_Callback()
   unsigned long duration = end - start;
   Serial.print("Duration:");
   Serial.println(duration);
+}
+
+void readInterface()
+{
 }
 
 void sendDataTask_Callback()
@@ -405,19 +319,19 @@ void buttonCheck_Callback()
 
   if (shiftRegisterIO.checkButton("UP") == "UP")
   {
-    Serial.println("UP_Buton_Pressed");
+    Log.notice("UP_Buton_Pressed");
     buttonState = "UP";
   }
 
   if (shiftRegisterIO.checkButton("DOWN") == "DOWN")
   {
-    Serial.println("DOWN_Buton_Pressed");
+    Log.notice("DOWN_Buton_Pressed");
     buttonState = "DOWN";
   }
 
   if (shiftRegisterIO.checkButton("SELECT") == "SELECT")
   {
-    Serial.println("SELECT_Button_Presses");
+    Log.notice("SELECT_Button_Presses");
     buttonState = "SELECT";
   }
 

@@ -39,7 +39,8 @@ void DisplayInterface ::displayMeter(Adafruit_SSD1306 *display, struct MeterData
     display->println(" m^3");
 
     display->print("T_Up:   ");
-    display->print(meterData->temperature_up_Celcius);
+    display->U
+        display->print(meterData->temperature_up_Celcius);
     display->print("/");
     display->print(meterData->temperature_up_Celcius_mean);
     display->println(" C");
@@ -56,7 +57,7 @@ void DisplayInterface ::displayMeter(Adafruit_SSD1306 *display, struct MeterData
     display->display();
 }
 
-int DisplayInterface::displaySettingsMain(Adafruit_SSD1306 *display, String buttonState)
+int DisplayInterface::displaySettingsSelectInterface(Adafruit_SSD1306 *display, String buttonState)
 {
     if (buttonState == "UP")
     {
@@ -168,7 +169,94 @@ int DisplayInterface::displaySettingsMain(Adafruit_SSD1306 *display, String butt
     }
 }
 
-int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4])
+int DisplayInterface::displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, String buttonState)
+{
+
+    if (buttonState == "UP")
+    {
+        selected_Entry--;
+    }
+
+    if (buttonState == "DOWN")
+    {
+        selected_Entry++;
+    }
+
+    // Do not go out of display
+    if (selected_Entry < 0)
+    {
+        selected_Entry = 3;
+    }
+    if (selected_Entry > 3)
+    {
+        selected_Entry = 0;
+    }
+
+    display->clearDisplay();
+
+    display->setCursor(0, 0);
+    display->setTextSize(2);
+    display->print("Config ");
+    display->print(selected_Interface);
+
+    display->setTextSize(1);
+    if (selected_Entry == 0)
+    {
+        display->print("<- Back");
+    }
+
+    display->println();
+    display->println();
+    display->println();
+
+    if (selected_Entry == 1)
+    {
+        display->print("- ");
+    }
+    else
+    {
+        display->print("  ");
+    }
+
+    display->println("Temperature");
+
+    if (selected_Entry == 2)
+    {
+        display->print("- ");
+    }
+    else
+    {
+        display->print("  ");
+    }
+    display->println("Resistance");
+
+    display->display();
+
+    if (buttonState.equals("SELECT"))
+    {
+        switch (selected_Entry)
+        {
+        case 0:
+            return 5;
+            break;
+        case 1:
+            return 7;
+            break;
+        case 2:
+            return 8;
+            break;
+
+        default:
+            break;
+        }
+    }
+    else
+    {
+        return 6;
+    }
+}
+
+int DisplayInterface::displayConfigTemperature(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4])
 {
     if (buttonState == "UP")
     {
@@ -242,7 +330,7 @@ int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String b
         display->print("<- Back");
         if (buttonState == "SELECT")
         {
-            return 5;
+            return 6;
         }
     }
     display->println();
@@ -292,7 +380,7 @@ int DisplayInterface::dsiplayConfigInterface(Adafruit_SSD1306 *display, String b
     display->println(meterData[selected_Interface - 1].temperature_down_Celcius);
 
     display->display();
-    return 6;
+    return 7;
 }
 
 void DisplayInterface::displaySavingScreen(Adafruit_SSD1306 *display)
