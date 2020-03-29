@@ -19,40 +19,54 @@ void DisplayInterface::boot(Adafruit_SSD1306 *display)
     display->display();
 }
 
-void DisplayInterface ::displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData)
+void DisplayInterface::displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData)
 {
     display->clearDisplay();
-    display->setCursor(0, 0);
+
     display->setTextSize(2);
+    display->setCursor(0, 0);
     display->print(meterData->meterID);
     display->setTextSize(1);
+    display->setCursor(0, 0);
+
+    display->drawTriangle(14, 2, 16, 0, 18, 2, SSD1306_WHITE);
+    display->drawLine(16, 1, 16, 5, SSD1306_WHITE);
     display->print("     ");
-    display->println(meterData->absolute_HeatEnergy_MWh, 5);
-    display->println();
-
-    display->setTextSize(1);
-    display->print("Engery: ");
-    display->println(meterData->delta_HeatEnergy_J);
-
-    display->print("Water:  ");
-    display->print(meterData->water_CounterValue_m3);
-    display->println(" m^3");
-
-    display->print("T_Up:   ");
-    display->U
-        display->print(meterData->temperature_up_Celcius);
+    display->print(meterData->temperature_up_Celcius);
     display->print("/");
     display->print(meterData->temperature_up_Celcius_mean);
-    display->println(" C");
+    display->print(" ");
+    display->print((char)247);
+    display->println("C");
 
-    display->print("T_Down: ");
+    display->drawTriangle(14, 10, 16, 12, 18, 10, SSD1306_WHITE);
+    display->drawLine(16, 7, 16, 11, SSD1306_WHITE);
+    display->print("     ");
     display->print(meterData->temperature_down_Celcius);
     display->print("/");
     display->print(meterData->temperature_down_Celcius_mean);
-    display->println(" C");
+    display->print(" ");
+    display->print((char)247);
+    display->println("C");
 
-    display->print("State: ");
-    display->println(meterData->waterMeterState);
+    //display->println(meterData->absolute_HeatEnergy_MWh, 5);
+    //display->println();
+
+    // display->print("Engery: ");
+    //display->println(meterData->delta_HeatEnergy_J);
+
+    //display->print("Water:  ");
+    //display->print(meterData->water_CounterValue_m3);
+    //display->println(" m^3");
+
+    //display->print("T_Down: ");
+    //display->print(meterData->temperature_down_Celcius);
+    //display->print("/");
+    //display->print(meterData->temperature_down_Celcius_mean);
+    //display->println(" C");
+
+    // display->print("State: ");
+    // display->println(meterData->waterMeterState);
 
     display->display();
 }
