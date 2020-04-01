@@ -224,8 +224,8 @@ void ShiftRegisterIO::checkMeterResistance(struct MeterData *meterData)
 
     int analogValue = analogRead(A0);
 
-    Serial.print(analogValue);
-    Serial.print(meterData->mux_resistance_threshold);
+    //Serial.print(analogValue);
+    //Serial.print(meterData->mux_resistance_threshold);
 
     if (analogValue <= meterData->mux_resistance_threshold)
     {
@@ -264,6 +264,57 @@ void ShiftRegisterIO::checkMeterResistance(struct MeterData *meterData)
 
     r_MuxSelect(99);
     write();
+}
+
+void ShiftRegisterIO::checkForVoltage(HeaterData *heaterData)
+{
+    r_MuxSelect(heaterData->mux_select);
+    write();
+    int analogValue = analogRead(A0);
+    heaterData->value_Analog = analogValue;
+    bool oldState = heaterData->state;
+
+    if (analogValue < heaterData->threshold_Analaog)
+    {
+        heaterData->state = true;
+        heaterData->runtime_on_current = millis() - heaterData->runtime_on_start;
+    }
+    else
+    {
+        heaterData->state = false;
+        heaterData->runtime_off_current = millis() - heaterData->runtime_off_start;
+    }
+    if (oldState != heaterData->state)
+    {
+        if (heaterData->state == true)
+        {
+            heaterData->pos_edge = true;
+            heaterData->neg_edge = false;
+        }
+        else
+        {
+            heaterData->pos_edge = false;
+            heaterData->neg_edge = true;
+        }
+    }
+    else
+    {
+        heaterData->pos_edge = false;
+        heaterData->neg_edge = false;
+    }
+
+    if (heaterData->pos_edge)
+    {
+        heaterData->runtime_on_start = millis();
+        heaterData->runtime_off_previous = heaterData->runtime_off_current;
+        heaterData->runtime_off_current = 0.0;
+    }
+    if (heaterData->neg_edge)
+    {
+        heaterData->runtime_off_start = millis();
+        heaterData->runtime_on_previous = heaterData->runtime_on_current;
+        heaterData->runtime_on_current = 0.0;
+    }
 }
 
 String ShiftRegisterIO::checkButton(String name)
@@ -434,10 +485,10 @@ void ShiftRegisterIO::write()
     digitalWrite(shiftRegister_IN, sr_io.LED_Ready);
     digitalWrite(shiftRegister_Clock, HIGH);
     digitalWrite(shiftRegister_Clock, LOW);
-    digitalWrite(shiftRegister_IN, sr_io.LED_Wifi);
+    digitalWrite(shiftRegister_IN, sr_io.LED_Error);
     digitalWrite(shiftRegister_Clock, HIGH);
     digitalWrite(shiftRegister_Clock, LOW);
-    digitalWrite(shiftRegister_IN, sr_io.LED_Error);
+    digitalWrite(shiftRegister_IN, sr_io.LED_Wifi);
     digitalWrite(shiftRegister_Clock, HIGH);
     digitalWrite(shiftRegister_Clock, LOW);
     digitalWrite(shiftRegister_IN, sr_io.RJ1_Counter);

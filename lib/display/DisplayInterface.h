@@ -10,7 +10,8 @@ public:
 
     void boot(Adafruit_SSD1306 *display);
     void printHello(Adafruit_SSD1306 *display);
-    void displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData);
+    void displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData, struct HeaterData *heaterData);
+    void displayHeater(Adafruit_SSD1306 *display, struct HeaterData *heaterData);
     int displaySettingsSelectInterface(Adafruit_SSD1306 *display, String buttonState);
     int displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, String buttonState);
     //int dsiplayConfigInterface(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);

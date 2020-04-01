@@ -49,6 +49,7 @@ public:
     void write();
 
     void checkMeterResistance(struct MeterData *meterData);
+    void checkForVoltage(struct HeaterData *heaterData);
     String checkButton(String name);
 
     // LED IO_Config

@@ -1,5 +1,6 @@
 #include "DisplayInterface.h"
 #include "ConfigInterface.h"
+#include <ESP8266WiFi.h>
 
 int selected_Interface = 0;
 int selected_Entry = 0;
@@ -19,7 +20,7 @@ void DisplayInterface::boot(Adafruit_SSD1306 *display)
     display->display();
 }
 
-void DisplayInterface::displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData)
+void DisplayInterface::displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData, struct HeaterData *heaterData)
 {
     display->clearDisplay();
 
@@ -29,35 +30,52 @@ void DisplayInterface::displayMeter(Adafruit_SSD1306 *display, struct MeterData 
     display->setTextSize(1);
     display->setCursor(0, 0);
 
-    display->drawTriangle(14, 2, 16, 0, 18, 2, SSD1306_WHITE);
-    display->drawLine(16, 1, 16, 5, SSD1306_WHITE);
-    display->print("     ");
-    display->print(meterData->temperature_up_Celcius);
+    if (heaterData->state == true)
+    {
+        //Draw heater symbol
+        display->drawLine(14, 14, 28, 14, SSD1306_WHITE);
+        display->drawLine(14, 14, 14, 2, SSD1306_WHITE);
+        display->drawLine(14, 2, 28, 2, SSD1306_WHITE);
+        display->drawLine(28, 14, 28, 2, SSD1306_WHITE);
+        display->drawLine(14, 0, 28, 0, SSD1306_WHITE);
+        display->drawLine(14, 0, 14, 2, SSD1306_WHITE);
+        display->drawLine(28, 0, 28, 2, SSD1306_WHITE);
+        display->drawTriangle(16, 7, 18, 5, 20, 7, SSD1306_WHITE);
+        display->drawTriangle(22, 7, 24, 5, 26, 7, SSD1306_WHITE);
+        display->drawTriangle(19, 11, 21, 9, 23, 11, SSD1306_WHITE);
+    }
+
+    display->drawTriangle(34, 2, 36, 0, 38, 2, SSD1306_WHITE);
+    display->drawLine(36, 1, 36, 5, SSD1306_WHITE);
+    display->print("       ");
+    display->printf("%2.1f", meterData->temperature_up_Celcius);
     display->print("/");
-    display->print(meterData->temperature_up_Celcius_mean);
+    display->printf("%2.2f", meterData->temperature_up_Celcius_mean);
     display->print(" ");
     display->print((char)247);
     display->println("C");
 
-    display->drawTriangle(14, 10, 16, 12, 18, 10, SSD1306_WHITE);
-    display->drawLine(16, 7, 16, 11, SSD1306_WHITE);
-    display->print("     ");
-    display->print(meterData->temperature_down_Celcius);
+    display->drawTriangle(34, 12, 36, 14, 38, 12, SSD1306_WHITE);
+    display->drawLine(36, 9, 36, 13, SSD1306_WHITE);
+    display->print("       ");
+    display->printf("%2.1f", meterData->temperature_down_Celcius);
     display->print("/");
-    display->print(meterData->temperature_down_Celcius_mean);
+    display->printf("%2.2f", meterData->temperature_down_Celcius_mean);
     display->print(" ");
     display->print((char)247);
     display->println("C");
 
-    //display->println(meterData->absolute_HeatEnergy_MWh, 5);
-    //display->println();
+    display->println();
+    display->printf("%.5f", meterData->absolute_HeatEnergy_MWh, 5);
+    display->println(" MWh");
 
     // display->print("Engery: ");
-    //display->println(meterData->delta_HeatEnergy_J);
+    display->printf("%.5f", meterData->delta_HeatEnergy_J);
+    display->println(" J");
 
     //display->print("Water:  ");
-    //display->print(meterData->water_CounterValue_m3);
-    //display->println(" m^3");
+    display->printf("%.5f", meterData->water_CounterValue_m3);
+    display->println(" m^3");
 
     //display->print("T_Down: ");
     //display->print(meterData->temperature_down_Celcius);
@@ -65,8 +83,119 @@ void DisplayInterface::displayMeter(Adafruit_SSD1306 *display, struct MeterData 
     //display->print(meterData->temperature_down_Celcius_mean);
     //display->println(" C");
 
-    // display->print("State: ");
-    // display->println(meterData->waterMeterState);
+    display->print("On  Time: ");
+    display->println(heaterData->runtime_on_current);
+
+    display->print("OFF  Time: ");
+    display->println(heaterData->runtime_off_current);
+
+    display->display();
+}
+
+void DisplayInterface::displayHeater(Adafruit_SSD1306 *display, struct HeaterData *heaterData)
+{
+    display->clearDisplay();
+
+    display->setTextSize(2);
+    display->setCursor(0, 0);
+    display->print("H");
+
+    if (heaterData->state == true)
+    {
+        //Draw heater symbol
+        display->drawLine(14, 14, 28, 14, SSD1306_WHITE);
+        display->drawLine(14, 14, 14, 2, SSD1306_WHITE);
+        display->drawLine(14, 2, 28, 2, SSD1306_WHITE);
+        display->drawLine(28, 14, 28, 2, SSD1306_WHITE);
+        display->drawLine(14, 0, 28, 0, SSD1306_WHITE);
+        display->drawLine(14, 0, 14, 2, SSD1306_WHITE);
+        display->drawLine(28, 0, 28, 2, SSD1306_WHITE);
+        display->drawTriangle(16, 7, 18, 5, 20, 7, SSD1306_WHITE);
+        display->drawTriangle(22, 7, 24, 5, 26, 7, SSD1306_WHITE);
+        display->drawTriangle(19, 11, 21, 9, 23, 11, SSD1306_WHITE);
+    }
+    display->setTextSize(1);
+    display->setCursor(0, 17);
+
+    display->drawLine(0, 15, 128, 15, SSD1306_WHITE);
+    display->drawLine(70, 15, 70, 64, SSD1306_WHITE);
+    display->drawLine(18, 15, 18, 64, SSD1306_WHITE);
+    display->print("    OFF      ON\n");
+    display->drawLine(0, 25, 128, 25, SSD1306_WHITE);
+
+    display->setCursor(0, 30);
+    display->print("N");
+    display->setCursor(25, 30);
+
+    if (((float)heaterData->runtime_off_current / 1000.0 / 60 / 60) > 1.0)
+    {
+        display->printf("%.1fh", (float)heaterData->runtime_off_current / 1000.0 / 60 / 60);
+    }
+    else
+    {
+        if (((float)heaterData->runtime_off_current / 1000.0 / 60) > 1.0)
+        {
+            display->printf("%.2fmin", (float)heaterData->runtime_off_current / 1000.0 / 60);
+        }
+        else
+        {
+            display->printf("%.2fs", (float)heaterData->runtime_off_current / 1000.0);
+        }
+    }
+
+    display->setCursor(75, 30);
+    if (((float)heaterData->runtime_on_current / 1000.0 / 60 / 60) > 1.0)
+    {
+        display->printf("%.1fh", (float)heaterData->runtime_on_current / 1000.0 / 60 / 60);
+    }
+    else
+    {
+        if (((float)heaterData->runtime_on_current / 1000.0 / 60) > 1.0)
+        {
+            display->printf("%.2fmin", (float)heaterData->runtime_on_current / 1000.0 / 60);
+        }
+        else
+        {
+            display->printf("%.2fs", (float)heaterData->runtime_on_current / 1000.0);
+        }
+    }
+
+    display->setCursor(0, 40);
+    display->print("N-1");
+
+    display->setCursor(25, 40);
+    if (((float)heaterData->runtime_off_previous / 1000.0 / 60 / 60) > 1.0)
+    {
+        display->printf("%.1fh", (float)heaterData->runtime_off_previous / 1000.0 / 60 / 60);
+    }
+    else
+    {
+        if (((float)heaterData->runtime_off_previous / 1000.0 / 60) > 1.0)
+        {
+            display->printf("%.2fmin", (float)heaterData->runtime_off_previous / 1000.0 / 60);
+        }
+        else
+        {
+            display->printf("%.2fs", (float)heaterData->runtime_off_previous / 1000.0);
+        }
+    }
+
+    display->setCursor(75, 40);
+    if (((float)heaterData->runtime_on_previous / 1000.0 / 60 / 60) > 1.0)
+    {
+        display->printf("%.1fh", (float)heaterData->runtime_on_previous / 1000.0 / 60 / 60);
+    }
+    else
+    {
+        if (((float)heaterData->runtime_on_previous / 1000.0 / 60) > 1.0)
+        {
+            display->printf("%.2fmin", (float)heaterData->runtime_on_previous / 1000.0 / 60);
+        }
+        else
+        {
+            display->printf("%.2fs", (float)heaterData->runtime_on_previous / 1000.0);
+        }
+    }
 
     display->display();
 }

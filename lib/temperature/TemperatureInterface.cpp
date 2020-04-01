@@ -4,6 +4,7 @@
 #include "ConfigInterface.h"
 #include "MAX31865.h"
 #include <SPI.h>
+#include <ArduinoLog.h>
 
 TemperatureInterface::TemperatureInterface()
 {
@@ -19,37 +20,37 @@ void TemperatureInterface::readTemperature(ShiftRegisterIO *shiftRegisterIO, Ada
     float RNOMINAL = 100.0;
 
     // UP
-    shiftRegisterIO->t_MuxSelect(meterData[0].mux_up);
+    shiftRegisterIO->t_MuxSelect(meterData->mux_up);
     shiftRegisterIO->write();
 
     uint8_t fault = thermo.readFault();
     if (fault)
     {
-        Serial.print("Fault 0x");
-        Serial.println(fault, HEX);
+        Log.warning("Fault 0x");
+        Log.warning("%h" CR, HEX);
         if (fault & MAX31865_FAULT_HIGHTHRESH)
         {
-            Serial.println("RTD High Threshold");
+            Log.warning("RTD High Threshold" CR);
         }
         if (fault & MAX31865_FAULT_LOWTHRESH)
         {
-            Serial.println("RTD Low Threshold");
+            Log.warning("RTD Low Threshold" CR);
         }
         if (fault & MAX31865_FAULT_REFINLOW)
         {
-            Serial.println("REFIN- > 0.85 x Bias");
+            Log.warning("REFIN- > 0.85 x Bias" CR);
         }
         if (fault & MAX31865_FAULT_REFINHIGH)
         {
-            Serial.println("REFIN- < 0.85 x Bias - FORCE- open");
+            Log.warning("REFIN- < 0.85 x Bias - FORCE- open" CR);
         }
         if (fault & MAX31865_FAULT_RTDINLOW)
         {
-            Serial.println("RTDIN- < 0.85 x Bias - FORCE- open");
+            Log.warning("RTDIN- < 0.85 x Bias - FORCE- open" CR);
         }
         if (fault & MAX31865_FAULT_OVUV)
         {
-            Serial.println("Under/Over voltage");
+            Log.warning("Under/Over voltage" CR);
         }
         thermo.clearFault();
     }
@@ -78,31 +79,32 @@ void TemperatureInterface::readTemperature(ShiftRegisterIO *shiftRegisterIO, Ada
     fault = thermo.readFault();
     if (fault)
     {
-        Serial.print("Fault 0x");
-        Serial.println(fault, HEX);
+
+        Log.warning("Fault 0x");
+        Log.warning("%h" CR, HEX);
         if (fault & MAX31865_FAULT_HIGHTHRESH)
         {
-            Serial.println("RTD High Threshold");
+            Log.warning("RTD High Threshold" CR);
         }
         if (fault & MAX31865_FAULT_LOWTHRESH)
         {
-            Serial.println("RTD Low Threshold");
+            Log.warning("RTD Low Threshold" CR);
         }
         if (fault & MAX31865_FAULT_REFINLOW)
         {
-            Serial.println("REFIN- > 0.85 x Bias");
+            Log.warning("REFIN- > 0.85 x Bias" CR);
         }
         if (fault & MAX31865_FAULT_REFINHIGH)
         {
-            Serial.println("REFIN- < 0.85 x Bias - FORCE- open");
+            Log.warning("REFIN- < 0.85 x Bias - FORCE- open" CR);
         }
         if (fault & MAX31865_FAULT_RTDINLOW)
         {
-            Serial.println("RTDIN- < 0.85 x Bias - FORCE- open");
+            Log.warning("RTDIN- < 0.85 x Bias - FORCE- open" CR);
         }
         if (fault & MAX31865_FAULT_OVUV)
         {
-            Serial.println("Under/Over voltage");
+            Log.warning("Under/Over voltage" CR);
         }
         thermo.clearFault();
     }

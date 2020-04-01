@@ -21,15 +21,14 @@ void measureTask_Callback();
 void readInterface();
 void sendDataTask_Callback();
 void buttonCheck_Callback();
-void readyLED(bool state);
 
 //WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
 
 Scheduler runner;
-Task displayTask(150, TASK_FOREVER, &displayTask_Callback, &runner, false);
+Task displayTask(100, TASK_FOREVER, &displayTask_Callback, &runner, false);
 Task measureTask(500, TASK_FOREVER, &measureTask_Callback, &runner, false);
-Task buttonTask(333, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
-//Task sendDataTask(10000, TASK_FOREVER, &sendDataTask_Callback, &runner, false);
+Task buttonTask(300, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
+Task sendDataTask(1000, TASK_FOREVER, &sendDataTask_Callback, &runner, false);
 
 // Display Configuration
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -52,9 +51,13 @@ ShiftRegisterIO shiftRegisterIO;
 //Configuration
 ConfigInterface configInterface;
 Configuratrion config;
+HeaterData heaterData;
 MeterData meterData[4];
 int displayState = 0;
+int counter;
 String buttonState = "X";
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 void setup()
 {
@@ -87,31 +90,31 @@ void setup()
   configInterface.init();
   configInterface.loadConfig(&config, meterData);
   thermo.begin(MAX31865_2WIRE);
-  //temperatureInterface.init(thermo);
 
-  // connectedWIFIEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event) {
-  //   Serial.print("Station connected, IP: ");
-  //   Serial.println(WiFi.localIP());
-  //   sendDataTask.enable();
-  // });
-
-  // disconnectedWIFIEventHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected &event) {
-  //   Serial.println("Station disconnected");
-  //   sendDataTask.disable();
-  // });
-
-  // WiFi.begin(config.wifi_SSID, config.wifi_Password);
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(config.wifi_SSID, config.wifi_Password);
 
   delay(500);
   displayTask.enable();
   measureTask.enable();
   buttonTask.enable();
+  sendDataTask.enable();
   runner.startNow();
 }
 
 void loop()
 {
-  shiftRegisterIO.led_READY(true);
+
+  if (millis() % 400)
+  {
+    shiftRegisterIO.led_READY(false);
+  }
+  else
+  {
+    shiftRegisterIO.led_READY(true);
+    Log.notice("HEAP_SIZE=%i" CR, system_get_free_heap_size());
+  }
   runner.execute();
 }
 
@@ -127,22 +130,23 @@ void displayTask_Callback()
     break;
 
   case 1: //Show Meter 1
-    displayInterface.displayMeter(&display, &meterData[0]);
+    displayInterface.displayMeter(&display, &meterData[0], &heaterData);
     //displayState++;
+    displayState = 90;
     break;
 
   case 2: //Show Meter 2
-    displayInterface.displayMeter(&display, &meterData[1]);
+    displayInterface.displayMeter(&display, &meterData[1], &heaterData);
     displayState++;
     break;
 
   case 3: //Show Meter 3
-    displayInterface.displayMeter(&display, &meterData[2]);
+    displayInterface.displayMeter(&display, &meterData[2], &heaterData);
     displayState++;
     break;
 
   case 4: //Show Meter 4
-    displayInterface.displayMeter(&display, &meterData[3]);
+    displayInterface.displayMeter(&display, &meterData[3], &heaterData);
     displayState = 1;
     break;
   case 5: //Show SettingsMain
@@ -156,6 +160,9 @@ void displayTask_Callback()
   case 7: // Edit values for data aquire
     displayState = displayInterface.displayConfigTemperature(&display, buttonState, meterData);
     buttonState = "X";
+    break;
+  case 90: //Show heater_data
+    displayInterface.displayHeater(&display, &heaterData);
     break;
   case 100: // Show screen when saving data back to flash
     displayInterface.displaySavingScreen(&display);
@@ -172,144 +179,211 @@ void displayTask_Callback()
 void measureTask_Callback()
 {
   unsigned long start = millis();
-  shiftRegisterIO.led_RJ1(true);
-
-  temperatureInterface.readTemperature(&shiftRegisterIO, thermo, &meterData[0]);
-
-  shiftRegisterIO.checkMeterResistance(&meterData[0]);
-  if (meterData[0].waterMeterState)
+  int i = counter;
+  if (i <= 4)
   {
-    shiftRegisterIO.led_statusRJ1(true);
+    switch (i)
+    {
+    case 0:
+      shiftRegisterIO.led_RJ1(true);
+      break;
+
+    case 1:
+      shiftRegisterIO.led_RJ2(true);
+      break;
+
+    case 2:
+      shiftRegisterIO.led_RJ3(true);
+      break;
+
+    case 3:
+      shiftRegisterIO.led_RJ4(true);
+      break;
+
+    default:
+      break;
+    }
+    temperatureInterface.readTemperature(&shiftRegisterIO, thermo, &meterData[i]);
+
+    shiftRegisterIO.checkMeterResistance(&meterData[i]);
+    if (meterData[i].waterMeterState)
+    {
+      switch (i)
+      {
+      case 0:
+        shiftRegisterIO.led_statusRJ1(true);
+        break;
+
+      case 1:
+        shiftRegisterIO.led_statusRJ2(true);
+        break;
+
+      case 2:
+        shiftRegisterIO.led_statusRJ3(true);
+        break;
+
+      case 3:
+        shiftRegisterIO.led_statusRJ4(true);
+        break;
+
+      default:
+        break;
+      }
+    }
+    else
+    {
+      switch (i)
+      {
+      case 0:
+        shiftRegisterIO.led_statusRJ1(false);
+        break;
+
+      case 1:
+        shiftRegisterIO.led_statusRJ2(false);
+        break;
+
+      case 2:
+        shiftRegisterIO.led_statusRJ3(false);
+        break;
+
+      case 3:
+        shiftRegisterIO.led_statusRJ4(false);
+        break;
+
+      default:
+        break;
+      }
+    }
+    if (meterData[i].mux_resistance_edgeDetect)
+    {
+      meterData[i].water_CounterValue_m3 += 5;
+      meterData[i].delta_HeatEnergy_J += 4200 * 5 * (meterData[i].temperature_up_Celcius_mean - meterData[i].temperature_down_Celcius_mean);
+      meterData[i].absolute_HeatEnergy_MWh = meterData[i].delta_HeatEnergy_J * 0.000000000277778;
+    }
+
+    switch (i)
+    {
+    case 0:
+      shiftRegisterIO.led_RJ1(false);
+      break;
+    case 1:
+      shiftRegisterIO.led_RJ2(false);
+      break;
+    case 2:
+      shiftRegisterIO.led_RJ3(false);
+      break;
+    case 3:
+      shiftRegisterIO.led_RJ4(false);
+      break;
+
+    default:
+      break;
+    }
+    counter++;
   }
-  else
+
+  if (counter >= 4)
   {
-    shiftRegisterIO.led_statusRJ1(false);
+    counter = 0;
   }
-  if (meterData[0].mux_resistance_edgeDetect)
-  {
-    meterData[0].water_CounterValue_m3 += 5;
-    meterData[0].delta_HeatEnergy_J += 4200 * 5 * (meterData[0].temperature_up_Celcius_mean - meterData[0].temperature_down_Celcius_mean);
-    meterData[0].absolute_HeatEnergy_MWh = meterData[0].delta_HeatEnergy_J * 0.000000000277778;
-  }
-  shiftRegisterIO.led_RJ1(false);
 
-  //shiftRegisterIO.led_RJ2(&shiftRegisterIO, &sr_io, true);
-  //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[1]);
-  //shiftRegisterIO.led_RJ2(&shiftRegisterIO, &sr_io, false);
-
-  //shiftRegisterIO.led_RJ3(&shiftRegisterIO, &sr_io, true);
-  //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[2]);
-  //shiftRegisterIO.led_RJ3(&shiftRegisterIO, &sr_io, false);
-
-  //shiftRegisterIO.led_RJ4(&shiftRegisterIO, &sr_io, true);
-  //temperatureInterface.readTemperature(thermo, &sr_io, &meterData[3]);
-  //shiftRegisterIO.led_RJ4(&shiftRegisterIO, &sr_io, false);
+  shiftRegisterIO.checkForVoltage(&heaterData);
 
   unsigned long end = millis();
   unsigned long duration = end - start;
-  Serial.print("Duration:");
-  Serial.println(duration);
-}
-
-void readInterface()
-{
+  //Serial.print("Duration:");
+  //Serial.println(duration);
 }
 
 void sendDataTask_Callback()
 {
+  //measureTask.disable();
 
-  measureTask.disable();
-  WiFiClient espClient;
-  PubSubClient client(espClient);
-
-  // WiFi.forceSleepWake();
-
-  // WiFi.mode(WIFI_STA);
-
-  // WiFi.begin(config.wifi_SSID, config.wifi_Password);
-
-  // Serial.print("Connecting to WIFI");
-  // while (WiFi.status() != WL_CONNECTED)
-  // {
-  //   shiftRegisterIO.led_WIFI(&shiftRegisterIO, &sr_io, true);
-
-  //   unsigned long timestamp = millis();
-  //   //while (millis() <= timestamp + 500)
-  //   //{
-  //   //  ;
-  //   //}
-  //   //delay(100);
-  //   delay(500);
-  //   Serial.print(".");
-
-  //   shiftRegisterIO.led_WIFI(&shiftRegisterIO, &sr_io, false);
-  //   //system_soft_wdt_feed();
-  //   //ESP.wdtFeed();
-  //   //system_soft_wdt_feed();
-  //   //wdt_reset();
-  //   //ESP.wdtFeed();
-  // }
-  //Serial.println("Connected to the WiFi network");
-
-  //shiftRegisterIO.led_WIFI(&shiftRegisterIO, &sr_io, true);
-  client.setServer(config.mqtt_ServerAddress, config.mqtt_Port);
-  //client.setCallback(callback
-
-  while (!client.connected())
+  if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.println("Connecting to MQTT...");
+    shiftRegisterIO.led_WIFI(true);
 
-    if (client.connect(config.name))
+    if (!client.connected())
     {
+      Log.notice("Connecting to MQTT..." CR);
+      client.setServer(config.mqtt_ServerAddress, config.mqtt_Port);
 
-      Serial.println("connected");
+      if (client.connect(config.name))
+      {
+        Log.notice("Connected" CR);
+      }
+      else
+      {
+        Log.error("Failed to connect MQTT with State: %i" CR, client.state());
+
+        shiftRegisterIO.led_ERROR(true);
+      }
     }
     else
     {
+      // if MQTT connected
+      Log.notice("Sending MQTT Topics" CR);
 
-      Serial.print("failed with state ");
-      Serial.print(client.state());
-      shiftRegisterIO.led_ERROR(true);
-      //delay(2000);
+      char topic[100];
+      char message[100];
+
+      for (size_t i = 0; i < 4; i++)
+      {
+        sprintf(topic, "%s/%d/water_CounterValue_m3", config.name, meterData[i].meterID);
+        sprintf(message, "%f", meterData[i].water_CounterValue_m3);
+        client.publish(topic, message);
+
+        sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", config.name, meterData[i].meterID);
+        sprintf(message, "%f", meterData[i].absolute_HeatEnergy_MWh);
+        client.publish(topic, message);
+
+        sprintf(topic, "%s/%d/temperature_up_Celcius", config.name, meterData[i].meterID);
+        sprintf(message, "%0.2f", meterData[i].temperature_up_Celcius);
+        client.publish(topic, message);
+
+        sprintf(topic, "%s/%d/temperature_down_Celcius", config.name, meterData[i].meterID);
+        sprintf(message, "%0.2f", meterData[i].temperature_down_Celcius);
+
+        sprintf(topic, "%s/%d/state", config.name, meterData[i].meterID);
+        sprintf(message, "%i", meterData[i].ledState);
+        client.publish(topic, message);
+      }
+
+      sprintf(topic, "%s/%s/state", config.name, heaterData.name);
+      sprintf(message, "%i", heaterData.state);
+      client.publish(topic, message);
+
+      sprintf(topic, "%s/%s/runtime_on_current", config.name, heaterData.name);
+      sprintf(message, "%li", heaterData.runtime_on_current);
+      client.publish(topic, message);
+
+      sprintf(topic, "%s/%s/runtime_off_current", config.name, heaterData.name);
+      sprintf(message, "%li", heaterData.runtime_off_current);
+      client.publish(topic, message);
+
+      sprintf(topic, "%s/%s/runtime_on_previous", config.name, heaterData.name);
+      sprintf(message, "%li", heaterData.runtime_on_previous);
+      client.publish(topic, message);
+
+      sprintf(topic, "%s/%s/runtime_off_previous", config.name, heaterData.name);
+      sprintf(message, "%li", heaterData.runtime_off_previous);
+      client.publish(topic, message);
+
+      sprintf(topic, "%s/info/freeRam", config.name);
+      sprintf(message, "%i", (int)system_get_free_heap_size);
+      client.publish(topic, message);
+
+      client.loop();
     }
-
-    client.publish("esp/test", "Hello from ESP8266");
-
-    //char *s = ""; // initialized properly
-    //char *s;
-    //sprintf(char *s, "%s/temperature_down_Celcius", config.name);
-    //Serial.print(s);
-    char topic[100];
-    char message[100];
-
-    sprintf(topic, "%s/%d/water_CounterValue_m3", config.name, meterData[0].meterID);
-    sprintf(message, "%f", meterData[0].water_CounterValue_m3);
-    client.publish(topic, message);
-
-    sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", config.name, meterData[0].meterID);
-    sprintf(message, "%f", meterData[0].absolute_HeatEnergy_MWh);
-    client.publish(topic, message);
-
-    sprintf(topic, "%s/%d/temperature_up_Celcius", config.name, meterData[0].meterID);
-    sprintf(message, "%0.2f", meterData[0].temperature_up_Celcius);
-    client.publish(topic, message);
-
-    sprintf(topic, "%s/%d/temperature_down_Celcius", config.name, meterData[0].meterID);
-    sprintf(message, "%0.2f", meterData[0].temperature_down_Celcius);
-    client.publish(topic, message);
   }
-  client.disconnect();
-  //wifi_set_sleep_type(LIGHT_SLEEP_T);
-  //WiFi.disconnect();
-  //WiFi.mode(WIFI_OFF);
-  //WiFi.disconnect();
-  //WiFi.forceSleepBegin();
-
-  measureTask.enable();
-
+  else
+  {
+    Log.error("No WIFI connection" CR);
+    shiftRegisterIO.led_WIFI(false);
+    shiftRegisterIO.led_ERROR(false);
+  }
+  //measureTask.enable();
   shiftRegisterIO.led_WIFI(false);
-
-  shiftRegisterIO.led_ERROR(false);
 }
 
 void buttonCheck_Callback()

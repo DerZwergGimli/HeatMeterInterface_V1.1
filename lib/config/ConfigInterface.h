@@ -15,6 +15,27 @@ struct Configuratrion
     const char *mqtt_Password;
 };
 
+struct HeaterData
+{
+    bool state;
+    bool pos_edge;
+    bool neg_edge;
+
+    const char *name = "HeaterData";
+
+    int mux_select = 3;
+    int threshold_Analaog = 900;
+    int value_Analog;
+    long runtime_on_current;
+    long runtime_on_start;
+
+    long runtime_off_current;
+    long runtime_off_start;
+
+    long runtime_on_previous;
+    long runtime_off_previous;
+};
+
 struct MeterData
 {
     short meterID;
