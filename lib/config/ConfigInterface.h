@@ -3,7 +3,7 @@
 
 #include "ExpSmooth.h"
 
-struct Configuratrion
+struct Configuration
 {
     int ID;
     const char *name = "HeatMeterInterface";
@@ -17,7 +17,7 @@ struct Configuratrion
 
 struct HeaterData
 {
-    bool state;
+    bool state = 0;
     bool pos_edge;
     bool neg_edge;
 
@@ -26,14 +26,14 @@ struct HeaterData
     int mux_select = 3;
     int threshold_Analaog = 900;
     int value_Analog;
-    long runtime_on_current;
-    long runtime_on_start;
+    long runtime_on_current = 0;
+    long runtime_on_start = 0;
 
-    long runtime_off_current;
-    long runtime_off_start;
+    long runtime_off_current = 0;
+    long runtime_off_start = 0;
 
-    long runtime_on_previous;
-    long runtime_off_previous;
+    long runtime_on_previous = 0;
+    long runtime_off_previous = 0;
 };
 
 struct MeterData
@@ -76,9 +76,9 @@ public:
     ConfigInterface();
 
     bool init();
-    bool loadConfig(struct Configuratrion *config, MeterData (&meterData)[4]);
-    bool saveConfig(Configuratrion *config, MeterData (&meterData)[4]);
-    void serialPrintConfig(Configuratrion config);
+    bool loadConfig(struct Configuration *config, MeterData (&meterData)[4]);
+    bool saveConfig(Configuration *config, MeterData (&meterData)[4]);
+    void serialPrintConfig(Configuration config);
 };
 
 #endif

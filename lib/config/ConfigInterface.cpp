@@ -7,7 +7,7 @@ ConfigInterface ::ConfigInterface() {}
 
 bool ConfigInterface::init()
 {
-    Log.notice("Mounting FileSystem");
+    Log.notice("Mounting FileSystem" CR);
 
     if (!SPIFFS.begin())
     {
@@ -17,7 +17,7 @@ bool ConfigInterface::init()
     return true;
 }
 
-bool ConfigInterface::loadConfig(struct Configuratrion *config, struct MeterData (&meterData)[4])
+bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData (&meterData)[4])
 {
     File configFile = SPIFFS.open("/config.json", "r");
     if (!configFile)
@@ -88,7 +88,7 @@ bool ConfigInterface::loadConfig(struct Configuratrion *config, struct MeterData
     return true;
 }
 
-bool ConfigInterface::saveConfig(struct Configuratrion *conf, struct MeterData (&meterData)[4])
+bool ConfigInterface::saveConfig(struct Configuration *conf, struct MeterData (&meterData)[4])
 {
     StaticJsonDocument<1072> doc;
     doc["ID"] = conf->ID;
@@ -138,7 +138,7 @@ bool ConfigInterface::saveConfig(struct Configuratrion *conf, struct MeterData (
     return true;
 }
 
-void ConfigInterface::serialPrintConfig(Configuratrion conf)
+void ConfigInterface::serialPrintConfig(Configuration conf)
 {
     Serial.print("Loaded ID: ");
     Serial.println(conf.ID);

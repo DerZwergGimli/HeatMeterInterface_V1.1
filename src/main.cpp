@@ -11,6 +11,7 @@
 #include <Esp.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <MQTT.h>
 //Scheduled Task setup
 //#define _TASK_ESP32_DLY_THRESHOLD 40L
 #define _TASK_SLEEP_ON_IDLE_RUN
@@ -20,15 +21,16 @@ void displayTask_Callback();
 void measureTask_Callback();
 void readInterface();
 void sendDataTask_Callback();
+void sendDataTask_Callback2();
 void buttonCheck_Callback();
 
 //WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
 
 Scheduler runner;
-Task displayTask(100, TASK_FOREVER, &displayTask_Callback, &runner, false);
-Task measureTask(500, TASK_FOREVER, &measureTask_Callback, &runner, false);
+Task displayTask(300, TASK_FOREVER, &displayTask_Callback, &runner, false);
+Task measureTask(100, TASK_FOREVER, &measureTask_Callback, &runner, false);
 Task buttonTask(300, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
-Task sendDataTask(1000, TASK_FOREVER, &sendDataTask_Callback, &runner, false);
+Task sendDataTask(1000, TASK_FOREVER, &sendDataTask_Callback2, &runner, false);
 
 // Display Configuration
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -50,7 +52,7 @@ ShiftRegisterIO shiftRegisterIO;
 
 //Configuration
 ConfigInterface configInterface;
-Configuratrion config;
+Configuration config;
 HeaterData heaterData;
 MeterData meterData[4];
 int displayState = 0;
@@ -58,6 +60,7 @@ int counter;
 String buttonState = "X";
 WiFiClient espClient;
 PubSubClient client(espClient);
+MQTT mqtt;
 
 void setup()
 {
@@ -67,9 +70,10 @@ void setup()
   }
   delay(100);
   Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-  Log.notice(F(CR "******************************************" CR));
-  Log.notice("***          Starting SYSTEM                " CR);
-  Log.notice("*********************** " CR);
+  Log.notice("******************************************" CR);
+  Log.notice("******************************************" CR);
+  Log.notice("***          Starting SYSTEM           ***" CR);
+  Log.notice("******************************************" CR);
 
   shiftRegisterIO.init();
   shiftRegisterIO.write();
@@ -91,9 +95,10 @@ void setup()
   configInterface.loadConfig(&config, meterData);
   thermo.begin(MAX31865_2WIRE);
 
-  WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(config.wifi_SSID, config.wifi_Password);
+  //WiFi.softAPdisconnect(true);
+  //WiFi.mode(WIFI_STA);
+  //WiFi.begin(config.wifi_SSID, config.wifi_Password);
+  mqtt.init();
 
   delay(500);
   displayTask.enable();
@@ -105,16 +110,18 @@ void setup()
 
 void loop()
 {
+  //mqtt.SendData();
+  //mqtt.init();
 
-  if (millis() % 400)
-  {
-    shiftRegisterIO.led_READY(false);
-  }
-  else
-  {
-    shiftRegisterIO.led_READY(true);
-    Log.notice("HEAP_SIZE=%i" CR, system_get_free_heap_size());
-  }
+  // if (millis() % 400)
+  // {
+  //   shiftRegisterIO.led_READY(false);
+  // }
+  // else
+  // {
+  //   shiftRegisterIO.led_READY(true);
+  //   Log.notice("HEAP_SIZE=%i" CR, system_get_free_heap_size());
+  // }
   runner.execute();
 }
 
@@ -291,8 +298,14 @@ void measureTask_Callback()
 
   unsigned long end = millis();
   unsigned long duration = end - start;
-  //Serial.print("Duration:");
-  //Serial.println(duration);
+  Log.notice("Duration:");
+  Log.notice("%l", duration);
+  Log.notice("" CR);
+}
+
+void sendDataTask_Callback2()
+{
+  mqtt.send(&shiftRegisterIO, &config, meterData, &heaterData);
 }
 
 void sendDataTask_Callback()
