@@ -12,25 +12,27 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <MQTT.h>
-//Scheduled Task setup
-//#define _TASK_ESP32_DLY_THRESHOLD 40L
 #define _TASK_SLEEP_ON_IDLE_RUN
 #include <TaskScheduler.h>
-//Delegates for platform.io
-void displayTask_Callback();
-void measureTask_Callback();
-void readInterface();
-void sendDataTask_Callback();
-void sendDataTask_Callback2();
-void buttonCheck_Callback();
 
-//WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
+void switchInterfaceLED(int i, bool state);
+void switchInterfaceLED_External(int i, bool state);
 
+void displayDisplay_Callback();
+void measureButtonState_Callback();
+void measureInterfaceTemperature_Callback();
+void measureInterfaceResistance_Callback();
+void measureInterfaceVoltage_Callback();
+void sendMQTT_Callback();
+
+//Task Config
 Scheduler runner;
-Task displayTask(200, TASK_FOREVER, &displayTask_Callback, &runner, false);
-Task measureTask(3000, TASK_FOREVER, &measureTask_Callback, &runner, false);
-Task buttonTask(200, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
-Task sendDataTask(5000, TASK_FOREVER, &sendDataTask_Callback2, &runner, false);
+Task displayTask(200, TASK_FOREVER, &displayDisplay_Callback, &runner, false);
+Task buttonTask(200, TASK_FOREVER, &measureButtonState_Callback, &runner, false);
+Task temperatureTask(10000, TASK_FOREVER, &measureInterfaceTemperature_Callback, &runner, false);
+Task resistanceTask(50, TASK_FOREVER, &measureInterfaceResistance_Callback, &runner, false);
+Task voltageTask(1000, TASK_FOREVER, &measureInterfaceVoltage_Callback, &runner, false);
+Task mqttTask(5000, TASK_FOREVER, &sendMQTT_Callback, &runner, false);
 
 // Display Configuration
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -46,9 +48,7 @@ TemperatureInterface temperatureInterface;
 
 // ShiftRegister Configuration
 ShiftRegisterIO shiftRegisterIO;
-//SR_IO sr_io;
-
-#define RMUX_IN A0
+//#define RMUX_IN A0
 
 //Configuration
 ConfigInterface configInterface;
@@ -61,8 +61,11 @@ String buttonState = "X";
 WiFiClient espClient;
 PubSubClient client(espClient);
 MQTT mqtt;
-int displayCounter = 0;
-int displayCounter_max = 10;
+int displayCounterTime = 0;
+int displayCounterTime_max = 10;
+
+int temperatureInterface_counter;
+int resistanceInterface_counter;
 
 void setup()
 {
@@ -79,10 +82,6 @@ void setup()
 
   shiftRegisterIO.init();
   shiftRegisterIO.write();
-  //shiftRegisterIO.write(&sr_io);
-  //shiftRegisterIO.write(&sr_io);
-
-  //pinMode(RMUX_IN, INPUT);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   {
@@ -96,43 +95,26 @@ void setup()
   configInterface.init();
   configInterface.loadConfig(&config, meterData);
   thermo.begin(MAX31865_2WIRE);
-
-  //WiFi.softAPdisconnect(true);
-  //WiFi.mode(WIFI_STA);
-  //WiFi.begin(config.wifi_SSID, config.wifi_Password);
   mqtt.init();
 
   delay(500);
   displayTask.enable();
-  measureTask.enable();
   buttonTask.enable();
-  sendDataTask.enable();
+  temperatureTask.enable();
+  resistanceTask.enable();
+  voltageTask.enable();
+  mqttTask.enable();
   runner.startNow();
 }
 
 void loop()
 {
-  //mqtt.SendData();
-  //mqtt.init();
-
-  // if (millis() % 400)
-  // {
-  //   shiftRegisterIO.led_READY(false);
-  // }
-  // else
-  // {
-  //   shiftRegisterIO.led_READY(true);
-  //   Log.notice("HEAP_SIZE=%i" CR, system_get_free_heap_size());
-  // }
   shiftRegisterIO.led_READY(true);
   runner.execute();
-  shiftRegisterIO.led_READY(true);
 }
 
-void displayTask_Callback()
+void displayDisplay_Callback()
 {
-  //shiftRegisterIO.led_READY(false);
-
   switch (displayState)
   {
   case 0:
@@ -142,53 +124,54 @@ void displayTask_Callback()
 
   case 1: //Show Meter 1
     displayInterface.displayMeter(&display, &meterData[0], &heaterData);
-    if (displayCounter >= displayCounter_max)
+    if (displayCounterTime >= displayCounterTime_max)
     {
-      displayState++;
-      displayCounter = 0;
+      //displayState++;
+      displayCounterTime = 0;
+      displayState = 90;
     }
     else
     {
-      displayCounter++;
+      displayCounterTime++;
     }
     break;
 
   case 2: //Show Meter 2
     displayInterface.displayMeter(&display, &meterData[1], &heaterData);
-    if (displayCounter >= displayCounter_max)
+    if (displayCounterTime >= displayCounterTime_max)
     {
       displayState++;
-      displayCounter = 0;
+      displayCounterTime = 0;
     }
     else
     {
-      displayCounter++;
+      displayCounterTime++;
     }
     break;
 
   case 3: //Show Meter 3
     displayInterface.displayMeter(&display, &meterData[2], &heaterData);
-    if (displayCounter >= displayCounter_max)
+    if (displayCounterTime >= displayCounterTime_max)
     {
       displayState++;
-      displayCounter = 0;
+      displayCounterTime = 0;
     }
     else
     {
-      displayCounter++;
+      displayCounterTime++;
     }
     break;
 
   case 4: //Show Meter 4
     displayInterface.displayMeter(&display, &meterData[3], &heaterData);
-    if (displayCounter >= displayCounter_max)
+    if (displayCounterTime >= displayCounterTime_max)
     {
       displayState = 90;
-      displayCounter = 0;
+      displayCounterTime = 0;
     }
     else
     {
-      displayCounter++;
+      displayCounterTime++;
     }
     break;
   case 5: //Show SettingsMain
@@ -205,14 +188,14 @@ void displayTask_Callback()
     break;
   case 90: //Show heater_data
     displayInterface.displayHeater(&display, &heaterData);
-    if (displayCounter >= displayCounter_max)
+    if (displayCounterTime >= displayCounterTime_max)
     {
       displayState = 1;
-      displayCounter = 0;
+      displayCounterTime = 0;
     }
     else
     {
-      displayCounter++;
+      displayCounterTime++;
     }
     break;
   case 91: //Config heater_data
@@ -231,227 +214,8 @@ void displayTask_Callback()
   }
 }
 
-void measureTask_Callback()
+void measureButtonState_Callback()
 {
-  unsigned long start = millis();
-  int i = counter;
-  if (i <= 4)
-  {
-    switch (i)
-    {
-    case 0:
-      shiftRegisterIO.led_RJ1(true);
-      break;
-
-    case 1:
-      shiftRegisterIO.led_RJ2(true);
-      break;
-
-    case 2:
-      shiftRegisterIO.led_RJ3(true);
-      break;
-
-    case 3:
-      shiftRegisterIO.led_RJ4(true);
-      break;
-
-    default:
-      break;
-    }
-    temperatureInterface.readTemperature(&shiftRegisterIO, thermo, &meterData[i]);
-
-    shiftRegisterIO.checkMeterResistance(&meterData[i]);
-    if (meterData[i].waterMeterState)
-    {
-      switch (i)
-      {
-      case 0:
-        shiftRegisterIO.led_statusRJ1(true);
-        break;
-
-      case 1:
-        shiftRegisterIO.led_statusRJ2(true);
-        break;
-
-      case 2:
-        shiftRegisterIO.led_statusRJ3(true);
-        break;
-
-      case 3:
-        shiftRegisterIO.led_statusRJ4(true);
-        break;
-
-      default:
-        break;
-      }
-    }
-    else
-    {
-      switch (i)
-      {
-      case 0:
-        shiftRegisterIO.led_statusRJ1(false);
-        break;
-
-      case 1:
-        shiftRegisterIO.led_statusRJ2(false);
-        break;
-
-      case 2:
-        shiftRegisterIO.led_statusRJ3(false);
-        break;
-
-      case 3:
-        shiftRegisterIO.led_statusRJ4(false);
-        break;
-
-      default:
-        break;
-      }
-    }
-    if (meterData[i].mux_resistance_edgeDetect)
-    {
-      meterData[i].water_CounterValue_m3 += 5;
-      meterData[i].delta_HeatEnergy_J += 4200 * 5 * (meterData[i].temperature_up_Celcius_mean - meterData[i].temperature_down_Celcius_mean);
-      meterData[i].absolute_HeatEnergy_MWh = meterData[i].delta_HeatEnergy_J * 0.000000000277778;
-    }
-
-    switch (i)
-    {
-    case 0:
-      shiftRegisterIO.led_RJ1(false);
-      break;
-    case 1:
-      shiftRegisterIO.led_RJ2(false);
-      break;
-    case 2:
-      shiftRegisterIO.led_RJ3(false);
-      break;
-    case 3:
-      shiftRegisterIO.led_RJ4(false);
-      break;
-
-    default:
-      break;
-    }
-    counter++;
-  }
-
-  if (counter >= 4)
-  {
-    counter = 0;
-  }
-
-  shiftRegisterIO.checkForVoltage(&heaterData);
-
-  unsigned long end = millis();
-  unsigned long duration = end - start;
-  Log.notice("Duration:");
-  Log.notice("%l", duration);
-  Log.notice("" CR);
-}
-
-void sendDataTask_Callback2()
-{
-  mqtt.send(&shiftRegisterIO, &config, meterData, &heaterData);
-}
-
-void sendDataTask_Callback()
-{
-  //measureTask.disable();
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    shiftRegisterIO.led_WIFI(true);
-
-    if (!client.connected())
-    {
-      Log.notice("Connecting to MQTT..." CR);
-      client.setServer(config.mqtt_ServerAddress, config.mqtt_Port);
-
-      if (client.connect(config.name))
-      {
-        Log.notice("Connected" CR);
-      }
-      else
-      {
-        Log.error("Failed to connect MQTT with State: %i" CR, client.state());
-
-        shiftRegisterIO.led_ERROR(true);
-      }
-    }
-    else
-    {
-      // if MQTT connected
-      Log.notice("Sending MQTT Topics" CR);
-
-      char topic[100];
-      char message[100];
-
-      for (size_t i = 0; i < 4; i++)
-      {
-        sprintf(topic, "%s/%d/water_CounterValue_m3", config.name, meterData[i].meterID);
-        sprintf(message, "%f", meterData[i].water_CounterValue_m3);
-        client.publish(topic, message);
-
-        sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", config.name, meterData[i].meterID);
-        sprintf(message, "%f", meterData[i].absolute_HeatEnergy_MWh);
-        client.publish(topic, message);
-
-        sprintf(topic, "%s/%d/temperature_up_Celcius", config.name, meterData[i].meterID);
-        sprintf(message, "%0.2f", meterData[i].temperature_up_Celcius);
-        client.publish(topic, message);
-
-        sprintf(topic, "%s/%d/temperature_down_Celcius", config.name, meterData[i].meterID);
-        sprintf(message, "%0.2f", meterData[i].temperature_down_Celcius);
-
-        sprintf(topic, "%s/%d/state", config.name, meterData[i].meterID);
-        sprintf(message, "%i", meterData[i].ledState);
-        client.publish(topic, message);
-      }
-
-      sprintf(topic, "%s/%s/state", config.name, heaterData.name);
-      sprintf(message, "%i", heaterData.state);
-      client.publish(topic, message);
-
-      sprintf(topic, "%s/%s/runtime_on_current", config.name, heaterData.name);
-      sprintf(message, "%li", heaterData.runtime_on_current);
-      client.publish(topic, message);
-
-      sprintf(topic, "%s/%s/runtime_off_current", config.name, heaterData.name);
-      sprintf(message, "%li", heaterData.runtime_off_current);
-      client.publish(topic, message);
-
-      sprintf(topic, "%s/%s/runtime_on_previous", config.name, heaterData.name);
-      sprintf(message, "%li", heaterData.runtime_on_previous);
-      client.publish(topic, message);
-
-      sprintf(topic, "%s/%s/runtime_off_previous", config.name, heaterData.name);
-      sprintf(message, "%li", heaterData.runtime_off_previous);
-      client.publish(topic, message);
-
-      sprintf(topic, "%s/info/freeRam", config.name);
-      sprintf(message, "%i", (int)system_get_free_heap_size);
-      client.publish(topic, message);
-
-      client.loop();
-    }
-  }
-  else
-  {
-    Log.error("No WIFI connection" CR);
-    shiftRegisterIO.led_WIFI(false);
-    shiftRegisterIO.led_ERROR(false);
-  }
-  //measureTask.enable();
-  shiftRegisterIO.led_WIFI(false);
-}
-
-void buttonCheck_Callback()
-{
-  //shiftRegisterIO.led_READY(false);
-  //buttonState = "X";
-
   if (shiftRegisterIO.checkButton("UP") == "UP")
   {
     Log.notice("UP_Buton_Pressed");
@@ -475,5 +239,106 @@ void buttonCheck_Callback()
   {
     displayState = 5;
     buttonState = "X";
+  }
+}
+void measureInterfaceTemperature_Callback()
+{
+  switchInterfaceLED(temperatureInterface_counter, true);
+  temperatureInterface.readTemperature(&shiftRegisterIO, thermo, &meterData[temperatureInterface_counter]);
+  Log.notice("--> Interface_%i Temperature CHECKED" CR, temperatureInterface_counter);
+  switchInterfaceLED(temperatureInterface_counter, true);
+
+  temperatureInterface_counter++;
+  if (temperatureInterface_counter > 3)
+  {
+    temperatureInterface_counter = 0;
+  }
+}
+void measureInterfaceResistance_Callback()
+{
+  switchInterfaceLED(resistanceInterface_counter, true);
+  shiftRegisterIO.checkMeterResistance(&meterData[resistanceInterface_counter]);
+
+  if (meterData[resistanceInterface_counter].mux_resistance_edgeDetect)
+  {
+    meterData[resistanceInterface_counter].water_CounterValue_m3 += 5;
+    meterData[resistanceInterface_counter].delta_HeatEnergy_J += 4200 * 5 * (meterData[resistanceInterface_counter].temperature_up_Celcius_mean - meterData[resistanceInterface_counter].temperature_down_Celcius_mean);
+    meterData[resistanceInterface_counter].absolute_HeatEnergy_MWh = meterData[resistanceInterface_counter].delta_HeatEnergy_J * 0.000000000277778;
+  }
+  if (meterData[resistanceInterface_counter].waterMeterState)
+  {
+    switchInterfaceLED_External(resistanceInterface_counter, true);
+  }
+  else
+  {
+    switchInterfaceLED_External(resistanceInterface_counter, false);
+  }
+
+  switchInterfaceLED(resistanceInterface_counter, false);
+  Log.notice("--> Interface_%i Resistance CHECKED" CR, resistanceInterface_counter);
+
+  resistanceInterface_counter++;
+  if (resistanceInterface_counter > 3)
+  {
+    resistanceInterface_counter = 0;
+  }
+}
+void measureInterfaceVoltage_Callback()
+{
+  shiftRegisterIO.checkForVoltage(&heaterData);
+  Log.notice("--> Voltage CHECKED" CR);
+}
+void sendMQTT_Callback()
+{
+  mqtt.send(&shiftRegisterIO, &config, meterData, &heaterData);
+}
+
+void switchInterfaceLED(int i, bool state)
+{
+  switch (i)
+  {
+  case 0:
+    shiftRegisterIO.led_RJ1(state);
+    break;
+
+  case 1:
+    shiftRegisterIO.led_RJ2(state);
+    break;
+
+  case 2:
+    shiftRegisterIO.led_RJ3(state);
+    break;
+
+  case 3:
+    shiftRegisterIO.led_RJ4(state);
+    break;
+
+  default:
+    break;
+  }
+}
+
+void switchInterfaceLED_External(int i, bool state)
+{
+  switch (i)
+  {
+  case 0:
+    shiftRegisterIO.led_statusRJ1(state);
+    break;
+
+  case 1:
+    shiftRegisterIO.led_statusRJ2(state);
+    break;
+
+  case 2:
+    shiftRegisterIO.led_statusRJ3(state);
+    break;
+
+  case 3:
+    shiftRegisterIO.led_statusRJ4(state);
+    break;
+
+  default:
+    break;
   }
 }

@@ -40,7 +40,6 @@ struct MeterData
 {
     short meterID;
     bool waterMeterState;
-    bool ledState;
     long hardware_CounterValue;
     float temperature_up_Celcius;
     ExpSmooth temperature_up_Celcius_smooth;

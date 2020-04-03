@@ -235,12 +235,12 @@ void send()
         switch (messageCounter)
         {
         case 0:
-            if (interfaceCounter <= 3)
+            if (interfaceCounter <= 2)
             {
-                interfaceCounter++;
                 sprintf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->name, meterDataLocal[interfaceCounter].meterID);
                 sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].water_CounterValue_m3);
                 message_returnValue += mqttClient.publish(topic, qos, reatin, message);
+                interfaceCounter++;
             }
             else
             {
@@ -252,7 +252,7 @@ void send()
             }
             break;
         case 1:
-            if (interfaceCounter <= 3)
+            if (interfaceCounter <= 2)
             {
                 sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", configurationLocal->name, meterDataLocal[interfaceCounter].meterID);
                 sprintf(message, "%s%i absolute_HeatEnergy_MWh=%f", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].absolute_HeatEnergy_MWh);
@@ -269,7 +269,7 @@ void send()
             }
             break;
         case 2:
-            if (interfaceCounter <= 3)
+            if (interfaceCounter <= 2)
             {
                 sprintf(topic, "%s/%d/temperature_up_Celcius", configurationLocal->name, meterDataLocal[interfaceCounter].meterID);
                 sprintf(message, "%s%i temperature_up_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].temperature_up_Celcius);
@@ -286,7 +286,7 @@ void send()
             }
             break;
         case 3:
-            if (interfaceCounter <= 3)
+            if (interfaceCounter <= 2)
             {
                 sprintf(topic, "%s/%d/temperature_down_Celcius", configurationLocal->name, meterDataLocal[interfaceCounter].meterID);
                 sprintf(message, "%s%i temperature_down_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].temperature_down_Celcius);
@@ -303,17 +303,17 @@ void send()
             }
             break;
         case 4:
-            if (interfaceCounter <= 4)
+            if (interfaceCounter <= 2)
             {
                 sprintf(topic, "%s/%d/state", configurationLocal->name, meterDataLocal[interfaceCounter].meterID);
-                sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].ledState);
+                sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].waterMeterState);
                 message_returnValue += mqttClient.publish(topic, qos, reatin, message);
                 interfaceCounter++;
             }
             else
             {
                 sprintf(topic, "%s/%d/state", configurationLocal->name, meterDataLocal[interfaceCounter].meterID);
-                sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].ledState);
+                sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meterID, meterDataLocal[interfaceCounter].waterMeterState);
                 message_returnValue += mqttClient.publish(topic, qos, reatin, message);
                 messageCounter = 10;
                 interfaceCounter = 0;
