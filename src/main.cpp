@@ -74,6 +74,7 @@ void setup()
   {
   }
   delay(100);
+  
   Log.begin(LOG_LEVEL_VERBOSE, &Serial);
   Log.notice("******************************************" CR);
   Log.notice("******************************************" CR);
@@ -109,12 +110,12 @@ void setup()
 
 void loop()
 {
-  shiftRegisterIO.led_READY(true);
   runner.execute();
 }
 
 void displayDisplay_Callback()
 {
+  shiftRegisterIO.led_READY(true);
   switch (displayState)
   {
   case 0:
@@ -207,11 +208,11 @@ void displayDisplay_Callback()
     configInterface.saveConfig(&config, meterData);
     displayState = 1;
     break;
-
   default:
     displayState = 0;
     break;
   }
+  shiftRegisterIO.led_READY(false);
 }
 
 void measureButtonState_Callback()
