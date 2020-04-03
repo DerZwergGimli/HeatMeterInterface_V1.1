@@ -27,10 +27,10 @@ void buttonCheck_Callback();
 //WiFiEventHandler connectedWIFIEventHandler, disconnectedWIFIEventHandler;
 
 Scheduler runner;
-Task displayTask(300, TASK_FOREVER, &displayTask_Callback, &runner, false);
-Task measureTask(100, TASK_FOREVER, &measureTask_Callback, &runner, false);
-Task buttonTask(300, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
-Task sendDataTask(1000, TASK_FOREVER, &sendDataTask_Callback2, &runner, false);
+Task displayTask(200, TASK_FOREVER, &displayTask_Callback, &runner, false);
+Task measureTask(3000, TASK_FOREVER, &measureTask_Callback, &runner, false);
+Task buttonTask(200, TASK_FOREVER, &buttonCheck_Callback, &runner, false);
+Task sendDataTask(5000, TASK_FOREVER, &sendDataTask_Callback2, &runner, false);
 
 // Display Configuration
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -61,6 +61,8 @@ String buttonState = "X";
 WiFiClient espClient;
 PubSubClient client(espClient);
 MQTT mqtt;
+int displayCounter = 0;
+int displayCounter_max = 10;
 
 void setup()
 {
@@ -122,7 +124,9 @@ void loop()
   //   shiftRegisterIO.led_READY(true);
   //   Log.notice("HEAP_SIZE=%i" CR, system_get_free_heap_size());
   // }
+  shiftRegisterIO.led_READY(true);
   runner.execute();
+  shiftRegisterIO.led_READY(true);
 }
 
 void displayTask_Callback()
@@ -138,23 +142,54 @@ void displayTask_Callback()
 
   case 1: //Show Meter 1
     displayInterface.displayMeter(&display, &meterData[0], &heaterData);
-    //displayState++;
-    displayState = 90;
+    if (displayCounter >= displayCounter_max)
+    {
+      displayState++;
+      displayCounter = 0;
+    }
+    else
+    {
+      displayCounter++;
+    }
     break;
 
   case 2: //Show Meter 2
     displayInterface.displayMeter(&display, &meterData[1], &heaterData);
-    displayState++;
+    if (displayCounter >= displayCounter_max)
+    {
+      displayState++;
+      displayCounter = 0;
+    }
+    else
+    {
+      displayCounter++;
+    }
     break;
 
   case 3: //Show Meter 3
     displayInterface.displayMeter(&display, &meterData[2], &heaterData);
-    displayState++;
+    if (displayCounter >= displayCounter_max)
+    {
+      displayState++;
+      displayCounter = 0;
+    }
+    else
+    {
+      displayCounter++;
+    }
     break;
 
   case 4: //Show Meter 4
     displayInterface.displayMeter(&display, &meterData[3], &heaterData);
-    displayState = 1;
+    if (displayCounter >= displayCounter_max)
+    {
+      displayState = 90;
+      displayCounter = 0;
+    }
+    else
+    {
+      displayCounter++;
+    }
     break;
   case 5: //Show SettingsMain
     displayState = displayInterface.displaySettingsSelectInterface(&display, buttonState);
@@ -170,6 +205,19 @@ void displayTask_Callback()
     break;
   case 90: //Show heater_data
     displayInterface.displayHeater(&display, &heaterData);
+    if (displayCounter >= displayCounter_max)
+    {
+      displayState = 1;
+      displayCounter = 0;
+    }
+    else
+    {
+      displayCounter++;
+    }
+    break;
+  case 91: //Config heater_data
+    displayState = displayInterface.displayConfigResistance(&display, buttonState, meterData);
+    buttonState = "X";
     break;
   case 100: // Show screen when saving data back to flash
     displayInterface.displaySavingScreen(&display);
@@ -423,7 +471,7 @@ void buttonCheck_Callback()
   }
 
   // Go into Settings
-  if ((displayState == (1 || 2 || 3 || 4)) && (buttonState == "SELECT"))
+  if (((displayState == 1) || (displayState == 2) || (displayState == 3) || (displayState == 4) || (displayState == 90)) && (buttonState == "SELECT"))
   {
     displayState = 5;
     buttonState = "X";

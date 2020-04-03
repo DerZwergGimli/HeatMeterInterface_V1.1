@@ -67,6 +67,7 @@ struct MeterData
     int mux_down;
     int mux_resistance;
     int mux_resistance_threshold;
+    int mux_resistance_value;
     bool mux_resistance_edgeDetect;
 };
 

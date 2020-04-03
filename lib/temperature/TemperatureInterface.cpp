@@ -18,13 +18,14 @@ void TemperatureInterface::init(Adafruit_MAX31865 thermo)
 void TemperatureInterface::readTemperature(ShiftRegisterIO *shiftRegisterIO, Adafruit_MAX31865 thermo, struct MeterData *meterData)
 {
     float RNOMINAL = 100.0;
+    bool DEBUG = false;
 
     // UP
     shiftRegisterIO->t_MuxSelect(meterData->mux_up);
     shiftRegisterIO->write();
 
     uint8_t fault = thermo.readFault();
-    if (fault)
+    if (fault && DEBUG)
     {
         Log.warning("Fault 0x");
         Log.warning("%h" CR, HEX);
@@ -77,7 +78,7 @@ void TemperatureInterface::readTemperature(ShiftRegisterIO *shiftRegisterIO, Ada
     shiftRegisterIO->write();
 
     fault = thermo.readFault();
-    if (fault)
+    if (fault && DEBUG)
     {
 
         Log.warning("Fault 0x");

@@ -16,7 +16,7 @@ public:
     int displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, String buttonState);
     //int dsiplayConfigInterface(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);
     int displayConfigTemperature(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);
-    int displayConfigResistance();
+    int displayConfigResistance(Adafruit_SSD1306 *display, String buttonState, struct MeterData meater[4]);
     void displaySavingScreen(Adafruit_SSD1306 *display);
 };
 

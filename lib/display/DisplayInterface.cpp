@@ -83,12 +83,6 @@ void DisplayInterface::displayMeter(Adafruit_SSD1306 *display, struct MeterData 
     //display->print(meterData->temperature_down_Celcius_mean);
     //display->println(" C");
 
-    display->print("On  Time: ");
-    display->println(heaterData->runtime_on_current);
-
-    display->print("OFF  Time: ");
-    display->println(heaterData->runtime_off_current);
-
     display->display();
 }
 
@@ -339,7 +333,7 @@ int DisplayInterface::displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, 
 
     display->setCursor(0, 0);
     display->setTextSize(2);
-    display->print("Config ");
+    display->print("CONF ");
     display->print(selected_Interface);
 
     display->setTextSize(1);
@@ -386,7 +380,7 @@ int DisplayInterface::displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, 
             return 7;
             break;
         case 2:
-            return 8;
+            return 91;
             break;
 
         default:
@@ -524,6 +518,107 @@ int DisplayInterface::displayConfigTemperature(Adafruit_SSD1306 *display, String
 
     display->display();
     return 7;
+}
+
+int DisplayInterface::displayConfigResistance(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4])
+{
+    if (buttonState == "UP")
+    {
+        if (!edit_enable)
+        {
+            selected_Entry--;
+        }
+        else
+        {
+            if (selected_Entry == 1)
+            {
+                meterData[selected_Interface - 1].mux_resistance_threshold++;
+            }
+        }
+    }
+
+    if (buttonState == "DOWN")
+    {
+        if (!edit_enable)
+        {
+            selected_Entry++;
+        }
+        else
+        {
+            if (selected_Entry == 1)
+            {
+                meterData[selected_Interface - 1].mux_resistance_threshold--;
+            }
+        }
+    }
+
+    if (buttonState == "SELECT")
+    {
+        if (!edit_enable)
+        {
+            edit_enable = true;
+        }
+        else
+        {
+            edit_enable = false;
+        }
+    }
+
+    // Do not go out of display
+    if (selected_Entry < 0)
+    {
+        selected_Entry = 1;
+    }
+    if (selected_Entry > 1)
+    {
+        selected_Entry = 0;
+    }
+
+    display->clearDisplay();
+
+    display->setCursor(0, 0);
+    display->setTextSize(2);
+    display->print("CONF ");
+    display->print(selected_Interface);
+    display->setTextSize(1);
+    if (selected_Entry == 0)
+    {
+        display->print("<- Back");
+        if (buttonState == "SELECT")
+        {
+            return 6;
+        }
+    }
+    display->println();
+    display->println();
+    display->println();
+    display->println("Resistance:");
+    display->println("");
+    if (selected_Entry == 1)
+    {
+        if (!edit_enable)
+        {
+            display->print("- ");
+        }
+        else
+        {
+            display->print("+ ");
+        }
+    }
+    else
+    {
+        display->print("  ");
+    }
+
+    display->print("Threshold: ");
+    display->println(meterData[selected_Interface - 1].mux_resistance_threshold);
+    display->print("  Value:     ");
+    display->println(meterData[selected_Interface - 1].mux_resistance_value);
+    display->print("  State:     ");
+    display->println(meterData[selected_Interface - 1].waterMeterState);
+
+    display->display();
+    return 91;
 }
 
 void DisplayInterface::displaySavingScreen(Adafruit_SSD1306 *display)

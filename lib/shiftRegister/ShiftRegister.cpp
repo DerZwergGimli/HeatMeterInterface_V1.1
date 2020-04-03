@@ -223,6 +223,7 @@ void ShiftRegisterIO::checkMeterResistance(struct MeterData *meterData)
     write();
 
     int analogValue = analogRead(A0);
+    meterData->mux_resistance_value = analogValue;
 
     //Serial.print(analogValue);
     //Serial.print(meterData->mux_resistance_threshold);
