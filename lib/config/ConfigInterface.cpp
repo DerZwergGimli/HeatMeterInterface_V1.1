@@ -17,7 +17,7 @@ bool ConfigInterface::init()
     return true;
 }
 
-bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData (&meterData)[4])
+bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData (&meterData)[4], struct HeaterData *heaterData)
 {
     File configFile = SPIFFS.open("/config.json", "r");
     if (!configFile)
@@ -27,7 +27,7 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
     }
 
     int size = configFile.size();
-    if (size > 2048)
+    if (size > (JSON_OBJECT_SIZE(66) + 1460))
     {
         Log.error("Config file size is too large");
         return false;
@@ -41,7 +41,9 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
     // use configFile.readString instead.
     configFile.readBytes(buf.get(), size);
 
-    StaticJsonDocument<1072> doc;
+    //StaticJsonDocument<2366> doc;
+    const size_t capacity = JSON_OBJECT_SIZE(66) + 1460;
+    DynamicJsonDocument doc(capacity);
     auto error = deserializeJson(doc, buf.get());
     if (error)
     {
@@ -49,83 +51,157 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
         return config;
     }
 
-    config->ID = doc["ID"];
+    config->device_Name = doc["Device_Name"];
+    config->device_ID = doc["Device_ID"];
+    config->wifi_SSID = doc["WIFI_SSID"];
+    config->wifi_Password = doc["WIFI_PASSWORD"];
+    config->mqtt_Server = doc["MQTT_Server"];
+    config->mqtt_Port = doc["MQTT_ServerPort"];
+    config->task_Display_Interval = doc["Task_Display_Interval"];
+    config->task_Button_Interval = doc["Task_Button_Interval"];
+    config->task_Temperature_Interval = doc["Task_Temperature_Interval"];
+    config->task_Resistance_Interval = doc["Task_Resistance_Interval"];
+    config->task_Voltage_Interval = doc["Task_Voltage_Interval"];
+    config->task_MQTT_Interval = doc["Task_MQTT_Interval"];
 
-    meterData[0].meterID = doc["RJ1_MeterID"];
-    meterData[0].RREF_up = doc["RJ1_RREF_T1"];
-    meterData[0].RREF_down = doc["RJ1_RREF_T2"];
-    meterData[0].mux_up = doc["RJ1_MUX_T1"];
-    meterData[0].mux_down = doc["RJ1_MUX_T2"];
-    meterData[0].mux_resistance = doc["RJ1_MUX_R"];
-    meterData[0].mux_resistance_threshold = doc["RJ1_MUX_R_Threshold"];
-    meterData[0].hardware_CounterValue = doc["RJ1_Hardware_CounterValue"];
-    meterData[0].water_CounterValue_m3 = doc["RJ1_Water_CounterValue_m3"];
+    meterData[0].meter_ID = doc["Meter_1_ID"];
+    meterData[0].meter_name = doc["Meter_1_Name"];
+    meterData[0].RREF_up = doc["Meter_1_RREF_T1"];
+    meterData[0].RREF_down = doc["Meter_1_RREF_T2"];
+    meterData[0].mux_up = doc["Meter_1_MUX_T1"];
+    meterData[0].mux_down = doc["Meter_1_MUX_T2"];
+    meterData[0].mux_resistance = doc["Meter_1_MUX_R"];
+    meterData[0].mux_resistance_threshold = doc["Meter_1_MUX_R_Threshold"];
+    meterData[0].counterValue_m3 = doc["Meter_1_CounterValue_m3"];
+    meterData[0].counterValue_J = doc["Meter_1_CounterValue_J"];
+    meterData[0].counterValue_MWh = doc["Meter_1_CounterValue_MWh"];
 
-    meterData[1].meterID = doc["RJ2_MeterID"];
-    meterData[1].RREF_up = doc["RJ2_RREF_T1"];
-    meterData[1].RREF_down = doc["RJ2_RREF_T2"];
-    meterData[1].mux_up = doc["RJ2_MUX_T1"];
-    meterData[1].mux_down = doc["RJ2_MUX_T2"];
-    meterData[1].hardware_CounterValue = doc["RJ2_Hardware_CounterValue"];
-    meterData[1].water_CounterValue_m3 = doc["RJ2_Water_CounterValue_m3"];
+    meterData[1].meter_ID = doc["Meter_2_ID"];
+    meterData[1].meter_name = doc["Meter_2_Name"];
+    meterData[1].RREF_up = doc["Meter_2_RREF_T1"];
+    meterData[1].RREF_down = doc["Meter_2_RREF_T2"];
+    meterData[1].mux_up = doc["Meter_2_MUX_T1"];
+    meterData[1].mux_down = doc["Meter_2_MUX_T2"];
+    meterData[1].mux_resistance = doc["Meter_2_MUX_R"];
+    meterData[1].mux_resistance_threshold = doc["Meter_2_MUX_R_Threshold"];
+    meterData[1].counterValue_m3 = doc["Meter_2_CounterValue_m3"];
+    meterData[1].counterValue_J = doc["Meter_2_CounterValue_J"];
+    meterData[1].counterValue_MWh = doc["Meter_2_CounterValue_MWh"];
 
-    meterData[2].meterID = doc["RJ3_MeterID"];
-    meterData[2].RREF_up = doc["RJ3_RREF_T1"];
-    meterData[2].RREF_down = doc["RJ3_RREF_T2"];
-    meterData[2].mux_up = doc["RJ3_MUX_T1"];
-    meterData[2].mux_down = doc["RJ3_MUX_T2"];
-    meterData[2].hardware_CounterValue = doc["RJ3_Hardware_CounterValue"];
-    meterData[2].water_CounterValue_m3 = doc["RJ3_Water_CounterValue_m3"];
+    meterData[2].meter_ID = doc["Meter_3_ID"];
+    meterData[2].meter_name = doc["Meter_3_Name"];
+    meterData[2].RREF_up = doc["Meter_3_RREF_T1"];
+    meterData[2].RREF_down = doc["Meter_3_RREF_T2"];
+    meterData[2].mux_up = doc["Meter_3_MUX_T1"];
+    meterData[2].mux_down = doc["Meter_3_MUX_T2"];
+    meterData[2].mux_resistance = doc["Meter_3_MUX_R"];
+    meterData[2].mux_resistance_threshold = doc["Meter_3_MUX_R_Threshold"];
+    meterData[2].counterValue_m3 = doc["Meter_3_CounterValue_m3"];
+    meterData[2].counterValue_J = doc["Meter_3_CounterValue_J"];
+    meterData[2].counterValue_MWh = doc["Meter_3_CounterValue_MWh"];
 
-    meterData[3].meterID = doc["RJ4_MeterID"];
-    meterData[3].RREF_up = doc["RJ4_RREF_T1"];
-    meterData[3].RREF_down = doc["RJ4_RREF_T2"];
-    meterData[3].mux_up = doc["RJ4_MUX_T1"];
-    meterData[3].mux_down = doc["RJ4_MUX_T2"];
-    meterData[3].hardware_CounterValue = doc["RJ4_Hardware_CounterValue"];
-    meterData[3].water_CounterValue_m3 = doc["RJ4_Water_CounterValue_m3"];
+    meterData[3].meter_ID = doc["Meter_4_ID"];
+    meterData[3].meter_name = doc["Meter_4_Name"];
+    meterData[3].RREF_up = doc["Meter_4_RREF_T1"];
+    meterData[3].RREF_down = doc["Meter_4_RREF_T2"];
+    meterData[3].mux_up = doc["Meter_4_MUX_T1"];
+    meterData[3].mux_down = doc["Meter_4_MUX_T2"];
+    meterData[3].mux_resistance = doc["Meter_4_MUX_R"];
+    meterData[3].mux_resistance_threshold = doc["Meter_4_MUX_R_Threshold"];
+    meterData[3].counterValue_m3 = doc["Meter_4_CounterValue_m3"];
+    meterData[3].counterValue_J = doc["Meter_4_CounterValue_J"];
+    meterData[3].counterValue_MWh = doc["Meter_4_CounterValue_MWh"];
 
+    heaterData->heater_ID = doc["Heater_ID"];
+    heaterData->heater_Name = doc["Heater_Name"];
+    heaterData->mux_select = doc["Heater_MUX_R"];
+    heaterData->threshold_Analaog = doc["Heater_MUX_R_Threshold"];
+    heaterData->runtime_on_current = doc["Heater_Runtime_On_Current"];
+    heaterData->runtime_off_current = doc["Heater_Runtime_Off_Current"];
+    heaterData->runtime_on_previous = doc["Heater_Runtime_On_Previous"];
+    heaterData->runtime_off_previous = doc["Heater_Runtime_Off_Previous"];
+    heaterData->counter_times_on = doc["Heater_Counter_Times_On"];
+    heaterData->counter_times_off = doc["Heater_Counter_Times_Off"];
+
+    Log.notice("Loaded Config File");
     return true;
 }
 
-bool ConfigInterface::saveConfig(struct Configuration *conf, struct MeterData (&meterData)[4])
+bool ConfigInterface::saveConfig(struct Configuration *config, struct MeterData (&meterData)[4], struct HeaterData *heaterData)
 {
     StaticJsonDocument<1072> doc;
-    doc["ID"] = conf->ID;
 
-    doc["RJ1_MeterID"] = meterData[0].meterID;
-    doc["RJ1_RREF_T1"] = meterData[0].RREF_up;
-    doc["RJ1_RREF_T2"] = meterData[0].RREF_down;
-    doc["RJ1_MUX_T1"] = meterData[0].mux_up;
-    doc["RJ1_MUX_T2"] = meterData[0].mux_down;
-    doc["RJ1_MUX_R"] = meterData[0].mux_resistance;
-    doc["RJ1_MUX_R_Threshold"] = meterData[0].mux_resistance_threshold;
-    doc["RJ1_Hardware_CounterValue"] = meterData[0].hardware_CounterValue;
-    doc["RJ1_Water_CounterValue_m3"] = meterData[0].water_CounterValue_m3;
+    doc["Device_Name"] = config->device_Name;
+    doc["Device_ID"] = config->device_ID;
+    doc["WIFI_SSID"] = config->wifi_SSID;
+    doc["WIFI_PASSWORD"] = config->wifi_Password;
+    doc["MQTT_Server"] = config->mqtt_Server;
+    doc["MQTT_ServerPort"] = config->mqtt_Port;
+    doc["Task_Display_Interval"] = config->task_Display_Interval;
+    doc["Task_Button_Interval"] = config->task_Button_Interval;
+    doc["Task_Temperature_Interval"] = config->task_Temperature_Interval;
+    doc["Task_Resistance_Interval"] = config->task_Resistance_Interval;
+    doc["Task_Voltage_Interval"] = config->task_Voltage_Interval;
+    doc["Task_MQTT_Interval"] = config->task_MQTT_Interval;
 
-    doc["RJ2_MeterID"] = meterData[1].meterID;
-    doc["RJ2_RREF_T1"] = meterData[1].RREF_up;
-    doc["RJ2_RREF_T2"] = meterData[1].RREF_down;
-    doc["RJ2_MUX_T1"] = meterData[1].mux_up;
-    doc["RJ2_MUX_T2"] = meterData[1].mux_down;
-    doc["RJ2_Hardware_CounterValue"] = meterData[1].hardware_CounterValue;
-    doc["RJ2_Water_CounterValue_m3"] = meterData[1].water_CounterValue_m3;
+    doc["Meter_1_ID"] = meterData[0].meter_ID;
+    doc["Meter_1_Name"] = meterData[0].meter_name;
+    doc["Meter_1_RREF_T1"] = meterData[0].RREF_up;
+    doc["Meter_1_RREF_T2"] = meterData[0].RREF_down;
+    doc["Meter_1_MUX_T1"] = meterData[0].mux_up;
+    doc["Meter_1_MUX_T2"] = meterData[0].mux_down;
+    doc["Meter_1_MUX_R"] = meterData[0].mux_resistance;
+    doc["Meter_1_MUX_R_Threshold"] = meterData[0].mux_resistance_threshold;
+    doc["Meter_1_CounterValue_m3"] = meterData[0].counterValue_m3;
+    doc["Meter_1_CounterValue_J"] = meterData[0].counterValue_J;
+    doc["Meter_1_CounterValue_MWh"] = meterData[0].counterValue_MWh;
 
-    doc["RJ3_MeterID"] = meterData[2].meterID;
-    doc["RJ3_RREF_T1"] = meterData[2].RREF_up;
-    doc["RJ3_RREF_T2"] = meterData[2].RREF_down;
-    doc["RJ3_MUX_T1"] = meterData[2].mux_up;
-    doc["RJ3_MUX_T2"] = meterData[2].mux_down;
-    doc["RJ3_Hardware_CounterValue"] = meterData[2].hardware_CounterValue;
-    doc["RJ3_Water_CounterValue_m3"] = meterData[2].water_CounterValue_m3;
+    doc["Meter_2_ID"] = meterData[1].meter_ID;
+    doc["Meter_2_Name"] = meterData[1].meter_name;
+    doc["Meter_2_RREF_T1"] = meterData[1].RREF_up;
+    doc["Meter_2_RREF_T2"] = meterData[1].RREF_down;
+    doc["Meter_2_MUX_T1"] = meterData[1].mux_up;
+    doc["Meter_2_MUX_T2"] = meterData[1].mux_down;
+    doc["Meter_2_MUX_R"] = meterData[1].mux_resistance;
+    doc["Meter_2_MUX_R_Threshold"] = meterData[1].mux_resistance_threshold;
+    doc["Meter_2_CounterValue_m3"] = meterData[1].counterValue_m3;
+    doc["Meter_2_CounterValue_J"] = meterData[1].counterValue_J;
+    doc["Meter_2_CounterValue_MWh"] = meterData[1].counterValue_MWh;
 
-    doc["RJ4_MeterID"] = meterData[3].meterID;
-    doc["RJ4_RREF_T1"] = meterData[3].RREF_up;
-    doc["RJ4_RREF_T2"] = meterData[3].RREF_down;
-    doc["RJ4_MUX_T1"] = meterData[3].mux_up;
-    doc["RJ4_MUX_T2"] = meterData[3].mux_down;
-    doc["RJ4_Hardware_CounterValue"] = meterData[3].hardware_CounterValue;
-    doc["RJ4_Water_CounterValue_m3"] = meterData[3].water_CounterValue_m3;
+    doc["Meter_3_ID"] = meterData[2].meter_ID;
+    doc["Meter_3_Name"] = meterData[2].meter_name;
+    doc["Meter_3_RREF_T1"] = meterData[2].RREF_up;
+    doc["Meter_3_RREF_T2"] = meterData[2].RREF_down;
+    doc["Meter_3_MUX_T1"] = meterData[2].mux_up;
+    doc["Meter_3_MUX_T2"] = meterData[2].mux_down;
+    doc["Meter_3_MUX_R"] = meterData[2].mux_resistance;
+    doc["Meter_3_MUX_R_Threshold"] = meterData[2].mux_resistance_threshold;
+    doc["Meter_3_CounterValue_m3"] = meterData[2].counterValue_m3;
+    doc["Meter_3_CounterValue_J"] = meterData[2].counterValue_J;
+    doc["Meter_3_CounterValue_MWh"] = meterData[2].counterValue_MWh;
+
+    doc["Meter_4_ID"] = meterData[3].meter_ID;
+    doc["Meter_4_Name"] = meterData[3].meter_name;
+    doc["Meter_4_RREF_T1"] = meterData[3].RREF_up;
+    doc["Meter_4_RREF_T2"] = meterData[3].RREF_down;
+    doc["Meter_4_MUX_T1"] = meterData[3].mux_up;
+    doc["Meter_4_MUX_T2"] = meterData[3].mux_down;
+    doc["Meter_4_MUX_R"] = meterData[3].mux_resistance;
+    doc["Meter_4_MUX_R_Threshold"] = meterData[3].mux_resistance_threshold;
+    doc["Meter_4_CounterValue_m3"] = meterData[3].counterValue_m3;
+    doc["Meter_4_CounterValue_J"] = meterData[3].counterValue_J;
+    doc["Meter_4_CounterValue_MWh"] = meterData[3].counterValue_MWh;
+
+    doc["Heater_ID"] = heaterData->heater_ID;
+    doc["Heater_Name"] = heaterData->heater_Name;
+    doc["Heater_MUX_R"] = heaterData->mux_select;
+    doc["Heater_MUX_R_Threshold"] = heaterData->threshold_Analaog;
+    doc["Heater_Runtime_On_Current"] = heaterData->runtime_on_current;
+    doc["Heater_Runtime_Off_Current"] = heaterData->runtime_off_current;
+    doc["Heater_Runtime_On_Previous"] = heaterData->runtime_on_previous;
+    doc["Heater_Runtime_Off_Previous"] = heaterData->runtime_off_previous;
+    doc["Heater_Counter_Times_On"] = heaterData->counter_times_on;
+    doc["Heater_Counter_Times_Off"] = heaterData->counter_times_off;
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)
@@ -141,7 +217,7 @@ bool ConfigInterface::saveConfig(struct Configuration *conf, struct MeterData (&
 void ConfigInterface::serialPrintConfig(Configuration conf)
 {
     Serial.print("Loaded ID: ");
-    Serial.println(conf.ID);
+    Serial.println(conf.device_ID);
     Serial.print("Loaded RREF_RJ1_T1: ");
     //Serial.println(conf.RREF_RJ1_T1);
     Serial.print("Loaded RREF_RJ1_T2: ");

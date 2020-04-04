@@ -104,7 +104,7 @@ void DisplayInterface::displayMeter(int interface)
 
     display.setTextSize(2);
     display.setCursor(0, 0);
-    display.print(p_MeterData[interface].meterID);
+    display.print(p_MeterData[interface].meter_ID);
     display.setTextSize(1);
     display.setCursor(0, 0);
 
@@ -144,18 +144,18 @@ void DisplayInterface::displayMeter(int interface)
     display.println("C");
 
     display.println();
-    printWithLeadingZeros(p_MeterData[interface].absolute_HeatEnergy_MWh);
-    display.printf("%.5f", p_MeterData[interface].absolute_HeatEnergy_MWh);
+    printWithLeadingZeros(p_MeterData[interface].counterValue_MWh);
+    display.printf("%.5f", p_MeterData[interface].counterValue_MWh);
     display.println(" MWh");
 
     // display->print("Engery: ");
-    printWithLeadingZeros(p_MeterData[interface].delta_HeatEnergy_J);
-    display.printf("%.5f", p_MeterData[interface].delta_HeatEnergy_J);
+    printWithLeadingZeros(p_MeterData[interface].counterValue_J);
+    display.printf("%.5f", p_MeterData[interface].counterValue_J);
     display.println(" J");
 
     //display->print("Water:  ");
-    printWithLeadingZeros(p_MeterData[interface].water_CounterValue_m3);
-    display.printf("%.5f", p_MeterData[interface].water_CounterValue_m3);
+    printWithLeadingZeros(p_MeterData[interface].counterValue_m3);
+    display.printf("%.5f", p_MeterData[interface].counterValue_m3);
     display.println(" m^3");
 
     display.display();
@@ -163,46 +163,53 @@ void DisplayInterface::displayMeter(int interface)
 
 void DisplayInterface::printWithLeadingZeros(float number)
 {
-    if ((number / 100000) >= 1.0)
+    if ((number / 1000000) >= 1.0)
     {
         for (size_t i = 0; i < 0; ++i)
         {
-            display.print("0");
+            display.print(" ");
+        }
+    }
+    else if ((number / 100000) >= 1.0)
+    {
+        for (size_t i = 0; i < 1; ++i)
+        {
+            display.print(" ");
         }
     }
     else if ((number / 10000) >= 1.0)
     {
-        for (size_t i = 0; i < 1; ++i)
+        for (size_t i = 0; i < 2; ++i)
         {
-            display.print("0");
+            display.print(" ");
         }
     }
     else if ((number / 1000) >= 1.0)
     {
-        for (size_t i = 0; i < 2; ++i)
+        for (size_t i = 0; i < 3; ++i)
         {
-            display.print("0");
+            display.print(" ");
         }
     }
     else if ((number / 100) >= 1.0)
     {
-        for (size_t i = 0; i < 3; ++i)
+        for (size_t i = 0; i < 4; ++i)
         {
-            display.print("0");
+            display.print(" ");
         }
     }
     else if ((number / 10) >= 1.0)
     {
-        for (size_t i = 0; i < 4; ++i)
+        for (size_t i = 0; i < 5; ++i)
         {
-            display.print("0");
+            display.print(" ");
         }
     }
     else if ((number / 1) >= 1.0)
     {
         for (size_t i = 0; i < 5; ++i)
         {
-            display.print("0");
+            display.print(" ");
         }
     }
 }

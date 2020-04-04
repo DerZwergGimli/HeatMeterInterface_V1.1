@@ -9,8 +9,6 @@
 #include "DisplayInterface.h"
 #include <Adafruit_MAX31865.h>
 #include <Esp.h>
-#include <ESP8266WiFi.h>
-#include <PubSubClient.h>
 #include <MQTT.h>
 #define _TASK_SLEEP_ON_IDLE_RUN
 #include <TaskScheduler.h>
@@ -26,18 +24,17 @@ void sendMQTT_Callback();
 
 //Task Config
 Scheduler runner;
-Task displayTask(200, TASK_FOREVER, &displayDisplay_Callback, &runner, false);
-Task buttonTask(200, TASK_FOREVER, &measureButtonState_Callback, &runner, false);
-Task temperatureTask(10000, TASK_FOREVER, &measureInterfaceTemperature_Callback, &runner, false);
-Task resistanceTask(50, TASK_FOREVER, &measureInterfaceResistance_Callback, &runner, false);
-Task voltageTask(1000, TASK_FOREVER, &measureInterfaceVoltage_Callback, &runner, false);
-Task mqttTask(5000, TASK_FOREVER, &sendMQTT_Callback, &runner, false);
+Task displayTask(0, TASK_FOREVER, &displayDisplay_Callback, &runner, false);
+Task buttonTask(0, TASK_FOREVER, &measureButtonState_Callback, &runner, false);
+Task temperatureTask(0, TASK_FOREVER, &measureInterfaceTemperature_Callback, &runner, false);
+Task resistanceTask(0, TASK_FOREVER, &measureInterfaceResistance_Callback, &runner, false);
+Task voltageTask(0, TASK_FOREVER, &measureInterfaceVoltage_Callback, &runner, false);
+Task mqttTask(0, TASK_FOREVER, &sendMQTT_Callback, &runner, false);
 
 // Display Configuration
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET -1    // Reset pin # (or -1 if sharing Arduino reset pin)
-//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 DisplayInterface displayInterface;
 
 //PT100 Configurartion
@@ -55,8 +52,6 @@ MeterData meterData[4];
 int displayState = 0;
 int counter;
 String buttonState = "X";
-WiFiClient espClient;
-PubSubClient client(espClient);
 MQTT mqtt;
 int displayCounterTime = 0;
 int displayCounterTime_max = 10;
@@ -85,11 +80,18 @@ void setup()
   displayInterface.init();
 
   configInterface.init();
-  configInterface.loadConfig(&config, meterData);
+  configInterface.loadConfig(&config, meterData, &heaterData);
+
   thermo.begin(MAX31865_2WIRE);
-  mqtt.init();
+  mqtt.init(String(config.wifi_SSID), String(config.wifi_Password), String(config.mqtt_Server), config.mqtt_Port);
 
   delay(500);
+  displayTask.setInterval(config.task_Display_Interval);
+  temperatureTask.setInterval(config.task_Temperature_Interval);
+  resistanceTask.setInterval(config.task_Resistance_Interval);
+  voltageTask.setInterval(config.task_Voltage_Interval);
+  mqttTask.setInterval(config.task_MQTT_Interval);
+
   displayTask.enable();
   buttonTask.enable();
   temperatureTask.enable();
@@ -255,9 +257,9 @@ void measureInterfaceResistance_Callback()
 
   if (meterData[resistanceInterface_counter].mux_resistance_edgeDetect)
   {
-    meterData[resistanceInterface_counter].water_CounterValue_m3 += 5 / 1000;
-    meterData[resistanceInterface_counter].delta_HeatEnergy_J += 4200 * 5 / 1000 * (meterData[resistanceInterface_counter].temperature_up_Celcius_mean - meterData[resistanceInterface_counter].temperature_down_Celcius_mean);
-    meterData[resistanceInterface_counter].absolute_HeatEnergy_MWh = meterData[resistanceInterface_counter].delta_HeatEnergy_J * 0.000000000277778;
+    meterData[resistanceInterface_counter].counterValue_m3 += 5 / 1000;
+    meterData[resistanceInterface_counter].counterValue_J += 4200 * 5 / 1000 * (meterData[resistanceInterface_counter].temperature_up_Celcius_mean - meterData[resistanceInterface_counter].temperature_down_Celcius_mean);
+    meterData[resistanceInterface_counter].counterValue_MWh = meterData[resistanceInterface_counter].counterValue_J * 0.000000000277778;
   }
   if (meterData[resistanceInterface_counter].waterMeterState)
   {
