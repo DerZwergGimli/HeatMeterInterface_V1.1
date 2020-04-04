@@ -8,16 +8,24 @@ class DisplayInterface
 public:
     DisplayInterface();
 
-    void boot(Adafruit_SSD1306 *display);
-    void printHello(Adafruit_SSD1306 *display);
-    void displayMeter(Adafruit_SSD1306 *display, struct MeterData *meterData, struct HeaterData *heaterData);
-    void displayHeater(Adafruit_SSD1306 *display, struct HeaterData *heaterData);
+    void init();
+    void displayBootMessage();
+    void displayTimer(int nextState);
+
+    void displayStateMachine(struct MeterData *meterData, struct HeaterData *heaterData);
+
+    void displayMeter(int interface);
+    void displayHeater();
+
     int displaySettingsSelectInterface(Adafruit_SSD1306 *display, String buttonState);
     int displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, String buttonState);
     //int dsiplayConfigInterface(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);
     int displayConfigTemperature(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);
     int displayConfigResistance(Adafruit_SSD1306 *display, String buttonState, struct MeterData meater[4]);
     void displaySavingScreen(Adafruit_SSD1306 *display);
+
+private:
+    void printWithLeadingZeros(float number);
 };
 
 #endif

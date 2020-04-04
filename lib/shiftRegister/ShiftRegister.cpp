@@ -358,6 +358,12 @@ String ShiftRegisterIO::checkButton(String name)
     return "";
 }
 
+void ShiftRegisterIO::toggleDisplay(bool toggle)
+{
+    sr_io.OLED_Enbable = toggle;
+    write();
+}
+
 void ShiftRegisterIO::led_ERROR(bool toggle)
 {
 

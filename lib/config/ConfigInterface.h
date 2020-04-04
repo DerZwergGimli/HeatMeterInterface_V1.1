@@ -34,6 +34,9 @@ struct HeaterData
 
     long runtime_on_previous = 0;
     long runtime_off_previous = 0;
+
+    int counter_times_on;
+    int counter_times_off;
 };
 
 struct MeterData

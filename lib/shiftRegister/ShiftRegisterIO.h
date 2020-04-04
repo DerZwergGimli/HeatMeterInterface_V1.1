@@ -48,9 +48,13 @@ public:
     void t_MuxSelect(int channel);
     void write();
 
+    // Measuremnets
     void checkMeterResistance(struct MeterData *meterData);
     void checkForVoltage(struct HeaterData *heaterData);
     String checkButton(String name);
+
+    // Enable/Disbale Tasks
+    void toggleDisplay(bool toggle);
 
     // LED IO_Config
     void led_ERROR(bool toggle);

@@ -410,7 +410,7 @@ void MQTT::send(struct ShiftRegisterIO *shiftRegister_io, struct Configuration *
 
     if (WiFi.isConnected())
     {
-        shiftRegister_io->led_WIFI(false);
+        shiftRegister_io->led_ERROR(false);
         if (mqttClient.connected())
         {
             shiftRegister_io->led_WIFI(true);
@@ -433,11 +433,11 @@ void MQTT::send(struct ShiftRegisterIO *shiftRegister_io, struct Configuration *
 
             //onMqttConnect(true);
 
-            shiftRegister_io->led_WIFI(true);
+            shiftRegister_io->led_WIFI(false);
         }
     }
     else
     {
-        shiftRegister_io->led_WIFI(true);
+        shiftRegister_io->led_ERROR(true);
     }
 }
