@@ -15,7 +15,7 @@ class MQTT
 public:
     MQTT();
 
-    void init(String wifi_ssid, String wifi_password, String mqtt_server, int mqtt_port);
+    void init();
     // void connectToWifi();
     // void connectToMqtt();
     // void onMqttConnect(bool sessionPresent);

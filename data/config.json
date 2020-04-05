@@ -10,7 +10,7 @@
     "Task_Temperature_Interval": 10000,
     "Task_Resistance_Interval": 100,
     "Task_Voltage_Interval": 1000,
-    "Task_MQTT_Interval": 5000,
+    "Task_MQTT_Interval": 1000,
     "Meter_1_ID": 1,
     "Meter_1_Name": "Meter_1",
     "Meter_1_RREF_T1": 240.0,

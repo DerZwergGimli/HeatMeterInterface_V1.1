@@ -5,14 +5,13 @@
 #include <AsyncMqttClient.h>
 #include "ConfigInterface.h"
 
-//const char *WiFi_SSID = "IoT_Network ";
-//const char *WiFi_Password = "I2mN39996";
+#define WiFi_SSID "IoT_Network"
+#define WiFi_Password "I2mN39996"
 
-String WIFI_SSID;
-String WIFI_PASSWORD;
-
-String MQTT_SERVER = "192.168.10.1";
-int MQTT_PORT = 1883;
+//String WIFI_SSID;
+//String WIFI_PASSWORD;
+#define MQTT_HOST IPAddress(192, 168, 10, 1)
+#define MQTT_PORT 1883
 
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
@@ -25,7 +24,6 @@ Configuration *configurationLocal;
 MeterData *meterDataLocal;
 HeaterData *heaterDataLocal;
 
-int i = 0;
 int messageCounter = 0;
 int interfaceCounter = 0;
 bool initSending = false;
@@ -44,9 +42,13 @@ void connectToMqtt();
 void connectToWifi()
 {
     Log.notice("Connecting to Wi-Fi..." CR);
-    WiFi.softAPdisconnect(true);
+    WiFi.setAutoReconnect(false);
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
+    WiFi.setOutputPower(20);
+    WiFi.hostname("HeatMeterInterface");
+    WiFi.disconnect();
+    WiFi.begin(WiFi_SSID, WiFi_Password);
 }
 
 void onWifiConnect(const WiFiEventStationModeGotIP &event)
@@ -131,145 +133,153 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void send()
 {
-    char topic[50];
+    char topic[40];
     char message[30];
     bool reatin = false;
     int qos = 1;
     int messageSate;
     int message_returnValue;
+    int packageID = -1;
     uint32_t myfreeRam = system_get_free_heap_size();
     if (configurationLocal && heaterDataLocal && meterDataLocal && initSending)
     {
-
-        switch (messageCounter)
+        while ((interfaceCounter < 4) && (packageID == -1))
         {
-        case 0:
-            if (interfaceCounter <= 2)
+            printf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+            sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_m3);
+            packageID = mqttClient.publish(topic, qos, reatin, message);
+
+            if (packageID > 0)
             {
-                sprintf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_m3);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                interfaceCounter++;
+                Log.notice("MQTT message send");
             }
-            else
-            {
-                sprintf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_m3);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                messageCounter++;
-                interfaceCounter = 0;
-            }
-            break;
-        case 1:
-            if (interfaceCounter <= 2)
-            {
-                sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i absolute_HeatEnergy_MWh=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_MWh);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                interfaceCounter++;
-            }
-            else
-            {
-                sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i absolute_HeatEnergy_MWh=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_MWh);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                messageCounter++;
-                interfaceCounter = 0;
-            }
-            break;
-        case 2:
-            if (interfaceCounter <= 2)
-            {
-                sprintf(topic, "%s/%d/temperature_up_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i temperature_up_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_up_Celcius);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                interfaceCounter++;
-            }
-            else
-            {
-                sprintf(topic, "%s/%d/temperature_up_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i temperature_up_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_up_Celcius);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                messageCounter++;
-                interfaceCounter = 0;
-            }
-            break;
-        case 3:
-            if (interfaceCounter <= 2)
-            {
-                sprintf(topic, "%s/%d/temperature_down_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i temperature_down_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_down_Celcius);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                interfaceCounter++;
-            }
-            else
-            {
-                sprintf(topic, "%s/%d/temperature_down_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i temperature_down_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_down_Celcius);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                messageCounter++;
-                interfaceCounter = 0;
-            }
-            break;
-        case 4:
-            if (interfaceCounter <= 2)
-            {
-                sprintf(topic, "%s/%d/state", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].waterMeterState);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                interfaceCounter++;
-            }
-            else
-            {
-                sprintf(topic, "%s/%d/state", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-                sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].waterMeterState);
-                message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-                messageCounter = 10;
-                interfaceCounter = 0;
-            }
-            break;
-        case 10:
-            sprintf(topic, "%s/%s/state", configurationLocal->device_Name, heaterDataLocal->heater_Name);
-            sprintf(message, "%s state=%i", heaterDataLocal->heater_Name, heaterDataLocal->state);
-            message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-            messageCounter++;
-            break;
-        case 11:
-            sprintf(topic, "%s/%s/runtime_on_current", configurationLocal->device_Name, heaterDataLocal->heater_Name);
-            sprintf(message, "%s runtime_on_current=%li", "Heater", heaterDataLocal->runtime_on_current);
-            message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-            messageCounter++;
-            break;
-        case 12:
-            sprintf(topic, "%s/%s/runtime_off_current", configurationLocal->device_Name, heaterDataLocal->heater_Name);
-            sprintf(message, "%s runtime_off_current=%li", "Heater", heaterDataLocal->runtime_off_current);
-            message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-            messageCounter++;
-            break;
-        case 13:
-            sprintf(topic, "%s/%s/runtime_on_previous", configurationLocal->device_Name, heaterDataLocal->heater_Name);
-            sprintf(message, "%s runtime_on_previous=%li", "Heater", heaterDataLocal->runtime_on_previous);
-            message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-            messageCounter++;
-            break;
-        case 14:
-            printf(topic, "%s/%s/runtime_of_previous", configurationLocal->device_Name, heaterDataLocal->heater_Name);
-            sprintf(message, "%s runtime_of_previous=%li", "Heater", heaterDataLocal->runtime_off_previous);
-            message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-            messageCounter = 20;
-            break;
-        case 20:
-            sprintf(topic, "%s/info/freeRam", configurationLocal->device_Name);
-            sprintf(message, "%s freeRam=%i", "System", myfreeRam);
-            message_returnValue += mqttClient.publish(topic, qos, reatin, message);
-            messageCounter = 0;
-            initSending = false;
-            break;
-        default:
-            messageCounter = 0;
-            initSending = false;
-            break;
         }
+
+        sprintf(topic, "%s/info/freeRam", configurationLocal->device_Name);
+        sprintf(message, "%s freeRam=%i", "System", myfreeRam);
+
+        message_returnValue = mqttClient.publish(topic, qos, reatin, message);
+        Log.notice("Messaege_Returned=%i" CR, message_returnValue);
+        message_returnValue = 0;
+        messageCounter = 0;
+        initSending = false;
+        // switch (messageCounter)
+        // {
+        // case 0:
+        //     if (interfaceCounter < 3)
+        //     {
+        //         sprintf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_m3);
+        //         interfaceCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     else
+        //     {
+        //         sprintf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_m3);
+        //         interfaceCounter = 0;
+        //         messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     break;
+        // case 1:
+        //     if (interfaceCounter < 3)
+        //     {
+        //         sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i absolute_HeatEnergy_MWh=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_MWh);
+        //         interfaceCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     else
+        //     {
+        //         sprintf(topic, "%s/%d/absolute_HeatEnergy_MWh", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i absolute_HeatEnergy_MWh=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_MWh);
+        //         interfaceCounter = 0;
+        //         messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     break;
+        // case 2:
+        //     if (interfaceCounter < 3)
+        //     {
+        //         sprintf(topic, "%s/%d/temperature_up_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i temperature_up_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_up_Celcius);
+        //         interfaceCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     else
+        //     {
+        //         sprintf(topic, "%s/%d/temperature_up_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i temperature_up_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_up_Celcius);
+        //         interfaceCounter = 0;
+        //         messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     break;
+        // case 3:
+        //     if (interfaceCounter < 3)
+        //     {
+        //         sprintf(topic, "%s/%d/temperature_down_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i temperature_down_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_down_Celcius);
+
+        //         interfaceCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     else
+        //     {
+        //         sprintf(topic, "%s/%d/temperature_down_Celcius", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i temperature_down_Celcius=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].temperature_down_Celcius);
+        //         interfaceCounter = 0;
+        //         messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     break;
+        // case 4:
+        //     if (interfaceCounter < 3)
+        //     {
+        //         sprintf(topic, "%s/%d/state", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].waterMeterState);
+        //         messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     else
+        //     {
+        //         sprintf(topic, "%s/%d/state", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
+        //         sprintf(message, "%s%i state=%i", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].waterMeterState);
+        //         messageCounter = 10;
+        //         interfaceCounter = 0;
+        //         message_returnValue += mqttClient.publish(topic, qos, reatin, message);
+        //     }
+        //     break;
+        // case 10:
+        //     sprintf(topic, "%s/%s/state", configurationLocal->device_Name, heaterDataLocal->heater_Name);
+        //     sprintf(message, "%s state=%i", heaterDataLocal->heater_Name, heaterDataLocal->state);
+        //     messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     break;
+        // case 11:
+        //     sprintf(topic, "%s/%s/runtime_on_current", configurationLocal->device_Name, heaterDataLocal->heater_Name);
+        //     sprintf(message, "%s runtime_on_current=%li", "Heater", heaterDataLocal->runtime_on_current);
+        //     messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     break;
+        // case 12:
+        //     sprintf(topic, "%s/%s/runtime_off_current", configurationLocal->device_Name, heaterDataLocal->heater_Name);
+        //     sprintf(message, "%s runtime_off_current=%li", "Heater", heaterDataLocal->runtime_off_current);
+        //     messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     break;
+        // case 13:
+        //     sprintf(topic, "%s/%s/runtime_on_previous", configurationLocal->device_Name, heaterDataLocal->heater_Name);
+        //     sprintf(message, "%s runtime_on_previous=%li", "Heater", heaterDataLocal->runtime_on_previous);
+        //     messageCounter += mqttClient.publish(topic, qos, reatin, message);
+        //     break;
+        // case 14:
+        //     printf(topic, "%s/%s/runtime_of_previous", configurationLocal->device_Name, heaterDataLocal->heater_Name);
+        //     sprintf(message, "%s runtime_of_previous=%li", "Heater", heaterDataLocal->runtime_off_previous);
+        //     messageCounter = 20;
+        //     message_returnValue += mqttClient.publish(topic, qos, reatin, message);
+        //     break;
+        // case 20:
+        //     sprintf(topic, "%s/info/freeRam", configurationLocal->device_Name);
+        //     sprintf(message, "%s freeRam=%i", "System", myfreeRam);
+        //     messageCounter = 0;
+        //     initSending = false;
+        //     message_returnValue += mqttClient.publish(topic, qos, reatin, message);
+        //     break;
+        // default:
+        //     messageCounter = 0;
+        //     initSending = false;
+        //     break;
+        // }
     }
     else
     {
@@ -297,13 +307,8 @@ void onMqttPublish(uint16_t packetId)
         send();
     }
 }
-void MQTT::init(String wifi_ssid, String wifi_password, String mqtt_server, int mqtt_port)
+void MQTT::init()
 {
-    WIFI_SSID = wifi_ssid;
-    WIFI_PASSWORD = wifi_password;
-    MQTT_SERVER = mqtt_server;
-    MQTT_PORT = mqtt_port;
-
     wifiConnectHandler = WiFi.onStationModeGotIP(onWifiConnect);
     wifiDisconnectHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
     //mqttClient.setMaxTopicLength(128);
@@ -313,7 +318,7 @@ void MQTT::init(String wifi_ssid, String wifi_password, String mqtt_server, int 
     //mqttClient.onUnsubscribe(onMqttUnsubscribe);
     //mqttClient.onMessage(onMqttMessage);
     mqttClient.onPublish(onMqttPublish);
-    mqttClient.setServer(MQTT_SERVER.c_str(), MQTT_PORT);
+    mqttClient.setServer(MQTT_HOST, MQTT_PORT);
 
     connectToWifi();
 }
@@ -327,6 +332,7 @@ void MQTT::send(struct ShiftRegisterIO *shiftRegister_io, struct Configuration *
         if (mqttClient.connected())
         {
             shiftRegister_io->led_WIFI(true);
+            Log.notice("Send Data via MQTT" CR);
 
             this->config = config;
             configurationLocal = config;

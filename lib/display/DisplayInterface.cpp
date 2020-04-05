@@ -10,8 +10,10 @@
 #define OLED_RESET -1    // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+struct Configuration *p_config;
 struct MeterData *p_MeterData;
 struct HeaterData *p_HeaterData;
+ButtonState *p_ButtonState;
 
 int display_state = 0;
 int showInterfaceTime_counter = 0;
@@ -21,11 +23,11 @@ int selected_Interface = 0;
 int selected_Entry = 0;
 bool edit_enable = false;
 
-DisplayInterface ::DisplayInterface()
+DisplayInterface::DisplayInterface()
 {
 }
 
-void DisplayInterface::init()
+void DisplayInterface::init(struct Configuration *config, struct MeterData *meterData, struct HeaterData *heaterData, ButtonState *buttonState)
 {
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
     {
@@ -33,10 +35,17 @@ void DisplayInterface::init()
         for (;;)
             Log.fatal("Error while connecting to Display");
     }
+    p_MeterData = meterData;
+    p_HeaterData = heaterData;
+    p_ButtonState = buttonState;
+    p_config = config;
+
     display_state = 1;
 }
+
 void DisplayInterface::displayBootMessage()
 {
+
     display.clearDisplay();
     display.setTextSize(2); // Draw 2X-scale text
     display.setTextColor(SSD1306_WHITE);
@@ -58,15 +67,11 @@ void DisplayInterface::displayTimer(int nextState)
         display_state = nextState;
     }
 }
-void DisplayInterface::displayStateMachine(struct MeterData *meterData, struct HeaterData *heaterData)
+void DisplayInterface::displayStateMachine()
 {
-    p_MeterData = meterData;
-    p_HeaterData = heaterData;
-
     switch (display_state)
     {
     case 0: // Setup Display
-        init();
         display_state++;
         break;
     case 1: // DisplayBoot Message
@@ -76,27 +81,76 @@ void DisplayInterface::displayStateMachine(struct MeterData *meterData, struct H
     case 10: // Display Interface Meter 1
         displayMeter(0);
         displayTimer(11);
+        if (*p_ButtonState == select)
+            display_state = 20;
         break;
     case 11: // Display Interface Meter 2
         displayMeter(1);
         displayTimer(12);
+        if (*p_ButtonState == select)
+            display_state = 20;
         break;
     case 12: // Display Interface Meter 3
         displayMeter(2);
         displayTimer(13);
+        if (*p_ButtonState == select)
+            display_state = 20;
         break;
     case 13: // Display Interface Meter 4
         displayMeter(3);
         displayTimer(15);
+        if (*p_ButtonState == select)
+            display_state = 20;
         break;
     case 15: // Display Interface Heater
         displayHeater();
         displayTimer(10);
+        if (*p_ButtonState == select)
+            display_state = 20;
+        break;
+    case 20: //Menu EDIT SAVE
+        menu_EditSave();
+        break;
+    case 25: //Menu Select Temp, Res
+        menu_Select_TempRes();
+        break;
+    case 26: //Menu Select Voltage
+        menu_Select_Voltage();
+        break;
+    case 30: //Edit Temperature
+        menu_Edit_Temperature();
+        break;
+    case 31: //Edit Resistance
+        menu_Edit_Resistance();
+        break;
+    case 32: //Edit Voltage
+        menu_Edit_Voltage();
         break;
     default:
         break;
     }
 }
+
+void DisplayInterface::menu_EditSave()
+{
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Menu");
+
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.println("EDIT");
+    display.println("SAVE");
+
+    display.display();
+}
+void DisplayInterface::menu_Select_TempRes() {}
+void DisplayInterface::menu_Select_Voltage() {}
+void DisplayInterface::menu_Edit_Temperature() {}
+void DisplayInterface::menu_Edit_Resistance() {}
+void DisplayInterface::menu_Edit_Voltage() {}
 
 void DisplayInterface::displayMeter(int interface)
 {
@@ -142,6 +196,7 @@ void DisplayInterface::displayMeter(int interface)
     display.print(" ");
     display.print((char)247);
     display.println("C");
+    display.println();
 
     display.println();
     printWithLeadingZeros(p_MeterData[interface].counterValue_MWh);
@@ -205,9 +260,9 @@ void DisplayInterface::printWithLeadingZeros(float number)
             display.print(" ");
         }
     }
-    else if ((number / 1) >= 1.0)
+    else
     {
-        for (size_t i = 0; i < 5; ++i)
+        for (size_t i = 0; i < 6; ++i)
         {
             display.print(" ");
         }

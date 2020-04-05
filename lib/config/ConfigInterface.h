@@ -3,12 +3,20 @@
 
 #include "ExpSmooth.h"
 
+enum ButtonState
+{
+    none,
+    select,
+    up,
+    down
+};
+
 struct Configuration
 {
     int device_ID = 0;
     const char *device_Name = "HeatMeterInterface";
-    const char *wifi_SSID;
-    const char *wifi_Password;
+    const char *wifi_SSID = "IoT_Network";
+    const char *wifi_Password = "I2mN39996";
     const char *mqtt_Server = "192.168.10.1";
     int mqtt_Port = 1883;
     int task_Display_Interval = 0;
