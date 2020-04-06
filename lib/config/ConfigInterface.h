@@ -14,6 +14,7 @@ enum ButtonState
 struct Configuration
 {
     int device_ID = 0;
+    String device_name = "HeatMeterInterface";
     const char *device_Name = "HeatMeterInterface";
     const char *wifi_SSID = "IoT_Network";
     const char *wifi_Password = "I2mN39996";
@@ -30,6 +31,7 @@ struct Configuration
 struct HeaterData
 {
     int heater_ID = 0;
+    String heater_name = "HeatData";
     const char *heater_Name = "HeaterData";
     int mux_select = 3;
     int threshold_Analaog = 900;

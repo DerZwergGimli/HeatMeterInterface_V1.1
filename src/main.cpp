@@ -88,17 +88,17 @@ void setup()
   thermo.begin(MAX31865_2WIRE);
   mqtt.init();
 
-  // displayTask.setInterval(config.task_Display_Interval);
-  // temperatureTask.setInterval(config.task_Temperature_Interval);
-  // resistanceTask.setInterval(config.task_Resistance_Interval);
-  // voltageTask.setInterval(config.task_Voltage_Interval);
-  // mqttTask.setInterval(config.task_MQTT_Interval);
+  displayTask.setInterval(config.task_Display_Interval);
+  temperatureTask.setInterval(config.task_Temperature_Interval);
+  resistanceTask.setInterval(config.task_Resistance_Interval);
+  voltageTask.setInterval(config.task_Voltage_Interval);
+  mqttTask.setInterval(config.task_MQTT_Interval);
 
   displayTask.enable();
   buttonTask.enable();
   temperatureTask.enable();
   resistanceTask.enable();
-  //voltageTask.enable();
+  voltageTask.enable();
   mqttTask.enable();
   Log.notice("---- DEVICE BOOTED ----" CR);
   runner.startNow();
@@ -270,7 +270,7 @@ void measureInterfaceResistance_Callback()
   Log.notice("--> Interface_%i Resistance CHECKED" CR, resistanceInterface_counter);
 
   resistanceInterface_counter++;
-  if (resistanceInterface_counter > 3)
+  if (resistanceInterface_counter >= 4)
   {
     resistanceInterface_counter = 0;
   }

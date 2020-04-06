@@ -51,7 +51,7 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
         return config;
     }
 
-    config->device_Name = doc["Device_Name"];
+    config->device_name = doc["Device_Name"].as<String>();
     config->device_ID = doc["Device_ID"];
     config->wifi_SSID = doc["WIFI_SSID"];
     config->wifi_Password = doc["WIFI_PASSWORD"];

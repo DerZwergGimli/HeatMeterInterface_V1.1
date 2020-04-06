@@ -77,7 +77,7 @@ void onMqttConnect(bool sessionPresent)
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
-    Log.warning("Disconnected from MQTT." CR);
+    Log.warning("Disconnected from MQTT (Reason %d)." CR, reason);
 
     if (WiFi.isConnected())
     {
@@ -133,36 +133,143 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void send()
 {
-    char topic[40];
-    char message[30];
-    bool reatin = false;
+
+    bool retain = false;
     int qos = 1;
-    int messageSate;
-    int message_returnValue;
     int packageID = -1;
     uint32_t myfreeRam = system_get_free_heap_size();
+
+    //Backup data to send  only on change;
+
     if (configurationLocal && heaterDataLocal && meterDataLocal && initSending)
     {
-        while ((interfaceCounter < 4) && (packageID == -1))
+        String topic;
+        String message;
+        switch (messageCounter)
         {
-            printf(topic, "%s/%d/water_CounterValue_m3", configurationLocal->device_Name, meterDataLocal[interfaceCounter].meter_ID);
-            sprintf(message, "%s%i water_CounterValue_m3=%f", "Interface", meterDataLocal[interfaceCounter].meter_ID, meterDataLocal[interfaceCounter].counterValue_m3);
-            packageID = mqttClient.publish(topic, qos, reatin, message);
+        case 0:
+            topic = configurationLocal->device_name + "/info/freeRam";
+            message = "System freeRam=" + String(myfreeRam);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 10;
+            break;
 
-            if (packageID > 0)
-            {
-                Log.notice("MQTT message send");
-            }
+        case 10:
+            topic = configurationLocal->device_name + "/" + String(meterDataLocal[interfaceCounter].meter_ID) + "/counterValue_MWh";
+            message = String("Interface") + String(meterDataLocal[interfaceCounter].meter_ID) + String(" counterValue_MWh=") + String(meterDataLocal[interfaceCounter].counterValue_MWh, 5);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            if (interfaceCounter >= 3)
+                messageCounter = 11;
+            interfaceCounter++;
+            break;
+        case 11:
+            topic = configurationLocal->device_name + "/" + String(meterDataLocal[interfaceCounter].meter_ID) + "/counterValue_m3";
+            message = String("Interface") + String(meterDataLocal[interfaceCounter].meter_ID) + String(" counterValue_m3=") + String(meterDataLocal[interfaceCounter].counterValue_m3, 5);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            if (interfaceCounter >= 3)
+                messageCounter = 12;
+            interfaceCounter++;
+            break;
+
+        case 12:
+            topic = configurationLocal->device_name + "/" + String(meterDataLocal[interfaceCounter].meter_ID) + "/temperature_up_Celcius";
+            message = String("Interface") + String(meterDataLocal[interfaceCounter].meter_ID) + String(" temperature_up_Celcius=") + String(meterDataLocal[interfaceCounter].temperature_up_Celcius);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            if (interfaceCounter >= 3)
+                messageCounter = 13;
+            interfaceCounter++;
+            break;
+
+        case 13:
+            topic = configurationLocal->device_name + "/" + String(meterDataLocal[interfaceCounter].meter_ID) + "/temperature_down_Celcius";
+            message = String("Interface") + String(meterDataLocal[interfaceCounter].meter_ID) + String(" temperature_down_Celcius=") + String(meterDataLocal[interfaceCounter].temperature_down_Celcius);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            if (interfaceCounter >= 3)
+                messageCounter = 14;
+            interfaceCounter++;
+            break;
+
+        case 14:
+            topic = configurationLocal->device_name + "/" + String(meterDataLocal[interfaceCounter].meter_ID) + "/waterMeterState";
+            message = String("Interface") + String(meterDataLocal[interfaceCounter].meter_ID) + String(" waterMeterState=") + String(meterDataLocal[interfaceCounter].waterMeterState);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            if (interfaceCounter >= 3)
+                messageCounter = 15;
+            interfaceCounter++;
+            break;
+        case 15:
+            topic = configurationLocal->device_name + "/" + String(meterDataLocal[interfaceCounter].meter_ID) + "/deltaTemperature_K";
+            message = String("Interface") + String(meterDataLocal[interfaceCounter].meter_ID) + String(" deltaTemperature_K=") + String(meterDataLocal[interfaceCounter].deltaTemperature_K);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            if (interfaceCounter >= 3)
+                messageCounter = 20;
+            interfaceCounter++;
+            break;
+
+        case 20:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/state";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" state=") + String(heaterDataLocal->state);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 21;
+            break;
+        case 21:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/counter_times_on";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" counter_times_on=") + String(heaterDataLocal->counter_times_on);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 22;
+            break;
+        case 22:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/counter_times_off";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" counter_times_off=") + String(heaterDataLocal->counter_times_off);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 23;
+            break;
+        case 23:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/runtime_on_current";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" runtime_on_current=") + String(heaterDataLocal->runtime_on_current);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 24;
+            break;
+        case 24:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/runtime_off_current";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" runtime_off_current=") + String(heaterDataLocal->runtime_off_current);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 25;
+            break;
+        case 25:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/runtime_on_previous";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" runtime_on_previous=") + String(heaterDataLocal->runtime_on_previous);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = 26;
+            break;
+        case 26:
+            topic = configurationLocal->device_name + "/" + String(heaterDataLocal->heater_name) + "/runtime_off_previous";
+            message = String("Heater") + String(heaterDataLocal->heater_ID) + String(" runtime_off_previous=") + String(heaterDataLocal->runtime_off_previous);
+            packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
+            messageCounter = -1;
+            break;
+
+        default:
+            initSending = false;
+            messageCounter = 0;
+            break;
         }
 
-        sprintf(topic, "%s/info/freeRam", configurationLocal->device_Name);
-        sprintf(message, "%s freeRam=%i", "System", myfreeRam);
+        if (interfaceCounter >= 4)
+            interfaceCounter = 0;
 
-        message_returnValue = mqttClient.publish(topic, qos, reatin, message);
-        Log.notice("Messaege_Returned=%i" CR, message_returnValue);
-        message_returnValue = 0;
-        messageCounter = 0;
-        initSending = false;
+        if (packageID > 0)
+        {
+            Log.notice("MQTT message send:%i" CR, packageID);
+            Log.notice("messageCounter=%i" CR, messageCounter);
+            Log.notice("interfaceCounter=%i" CR, interfaceCounter);
+        }
+
+        //sprintf(topic, "%s/info/freeRam", configurationLocal->device_Name);
+        //sprintf(message, "%s freeRam=%i", "System", myfreeRam);
+
+        // message_returnValue = mqttClient.publish(topic, qos, reatin, message);
+
         // switch (messageCounter)
         // {
         // case 0:
@@ -287,8 +394,6 @@ void send()
         initSending = false;
         messageCounter = 0;
     }
-    Log.notice("messageCounter=%i" CR, messageCounter);
-    Log.notice("interfaceCounter=%i" CR, messageCounter);
 }
 void onMqttPublish(uint16_t packetId)
 {
@@ -334,7 +439,6 @@ void MQTT::send(struct ShiftRegisterIO *shiftRegister_io, struct Configuration *
             shiftRegister_io->led_WIFI(true);
             Log.notice("Send Data via MQTT" CR);
 
-            this->config = config;
             configurationLocal = config;
             meterDataLocal = meterData;
             heaterDataLocal = heaterData;

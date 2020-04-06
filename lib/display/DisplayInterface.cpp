@@ -80,7 +80,7 @@ void DisplayInterface::displayStateMachine()
         break;
     case 10: // Display Interface Meter 1
         displayMeter(0);
-        displayTimer(11);
+        displayTimer(15);
         if (*p_ButtonState == select)
             display_state = 20;
         break;

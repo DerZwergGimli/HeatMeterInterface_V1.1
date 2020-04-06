@@ -307,12 +307,14 @@ void ShiftRegisterIO::checkForVoltage(HeaterData *heaterData)
     if (heaterData->pos_edge)
     {
         heaterData->runtime_on_start = millis();
+        heaterData->counter_times_off++;
         heaterData->runtime_off_previous = heaterData->runtime_off_current;
         heaterData->runtime_off_current = 0.0;
     }
     if (heaterData->neg_edge)
     {
         heaterData->runtime_off_start = millis();
+        heaterData->counter_times_on++;
         heaterData->runtime_on_previous = heaterData->runtime_on_current;
         heaterData->runtime_on_current = 0.0;
     }

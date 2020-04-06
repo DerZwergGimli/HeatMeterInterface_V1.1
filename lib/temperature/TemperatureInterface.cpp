@@ -128,4 +128,5 @@ void TemperatureInterface::readTemperature(ShiftRegisterIO *shiftRegisterIO, Ada
             meterData->temperature_down_Celcius_mean = meterData->temperature_down_Celcius_sum / meterData->temperature_down_Celcius_numberOfPoints;
         }
     }
+    meterData->deltaTemperature_K = meterData->temperature_up_Celcius - meterData->temperature_down_Celcius;
 }
