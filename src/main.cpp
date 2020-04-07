@@ -115,102 +115,6 @@ void displayDisplay_Callback()
   shiftRegisterIO.led_READY(false);
   shiftRegisterIO.toggleDisplay(true);
   displayInterface.displayStateMachine();
-  // switch (displayState)
-  // {
-  // case 0:
-  //   displayInterface.boot(&display);
-  //   displayState++;
-  //   break;
-
-  // case 1: //Show Meter 1
-  //   displayInterface.displayMeter(&display, &meterData[0], &heaterData);
-  //   if (displayCounterTime >= displayCounterTime_max)
-  //   {
-  //     //displayState++;
-  //     displayCounterTime = 0;
-  //     displayState = 90;
-  //   }
-  //   else
-  //   {
-  //     displayCounterTime++;
-  //   }
-  //   break;
-
-  // case 2: //Show Meter 2
-  //   displayInterface.displayMeter(&display, &meterData[1], &heaterData);
-  //   if (displayCounterTime >= displayCounterTime_max)
-  //   {
-  //     displayState++;
-  //     displayCounterTime = 0;
-  //   }
-  //   else
-  //   {
-  //     displayCounterTime++;
-  //   }
-  //   break;
-
-  // case 3: //Show Meter 3
-  //   displayInterface.displayMeter(&display, &meterData[2], &heaterData);
-  //   if (displayCounterTime >= displayCounterTime_max)
-  //   {
-  //     displayState++;
-  //     displayCounterTime = 0;
-  //   }
-  //   else
-  //   {
-  //     displayCounterTime++;
-  //   }
-  //   break;
-
-  // case 4: //Show Meter 4
-  //   displayInterface.displayMeter(&display, &meterData[3], &heaterData);
-  //   if (displayCounterTime >= displayCounterTime_max)
-  //   {
-  //     displayState = 90;
-  //     displayCounterTime = 0;
-  //   }
-  //   else
-  //   {
-  //     displayCounterTime++;
-  //   }
-  //   break;
-  // case 5: //Show SettingsMain
-  //   displayState = displayInterface.displaySettingsSelectInterface(&display, buttonState);
-  //   buttonState = "X";
-  //   break;
-  // case 6: // Select wether to edit Temp or Resistance
-  //   displayState = displayInterface.displaySettingsSelectTempOrRes(&display, buttonState);
-  //   buttonState = "X";
-  //   break;
-  // case 7: // Edit values for data aquire
-  //   displayState = displayInterface.displayConfigTemperature(&display, buttonState, meterData);
-  //   buttonState = "X";
-  //   break;
-  // case 90: //Show heater_data
-  //   displayInterface.displayHeater(&display, &heaterData);
-  //   if (displayCounterTime >= displayCounterTime_max)
-  //   {
-  //     displayState = 1;
-  //     displayCounterTime = 0;
-  //   }
-  //   else
-  //   {
-  //     displayCounterTime++;
-  //   }
-  //   break;
-  // case 91: //Config heater_data
-  //   displayState = displayInterface.displayConfigResistance(&display, buttonState, meterData);
-  //   buttonState = "X";
-  //   break;
-  // case 100: // Show screen when saving data back to flash
-  //   displayInterface.displaySavingScreen(&display);
-  //   configInterface.saveConfig(&config, meterData);
-  //   displayState = 1;
-  //   break;
-  // default:
-  //   displayState = 0;
-  //   break;
-  // }
 }
 
 void measureButtonState_Callback()
@@ -253,10 +157,15 @@ void measureInterfaceResistance_Callback()
 
   if (meterData[resistanceInterface_counter].mux_resistance_edgeDetect)
   {
-    meterData[resistanceInterface_counter].counterValue_m3 += 5 / 1000;
-    meterData[resistanceInterface_counter].counterValue_J += 4200 * 5 / 1000 * (meterData[resistanceInterface_counter].temperature_up_Celcius_mean - meterData[resistanceInterface_counter].temperature_down_Celcius_mean);
-    meterData[resistanceInterface_counter].counterValue_MWh = meterData[resistanceInterface_counter].counterValue_J * 0.000000000277778;
+    meterData[resistanceInterface_counter].counterValue_m3 += (5.0 / 1000.0);
+    meterData[resistanceInterface_counter].counterValue_m3_delta += (5.0 / 1000.0);
+    float deltaEnergy = (4200.0 * 5.0 / 1000.0 * (meterData[resistanceInterface_counter].temperature_up_Celcius_mean - meterData[resistanceInterface_counter].temperature_down_Celcius_mean));
+    meterData[resistanceInterface_counter].counterValue_J += deltaEnergy;
+    meterData[resistanceInterface_counter].counterValue_J_delta += deltaEnergy;
+    meterData[resistanceInterface_counter].counterValue_MWh += (deltaEnergy * 0.000000000277778);
+    meterData[resistanceInterface_counter].counterValue_MWh += (deltaEnergy * 0.000000000277778);
   }
+
   if (meterData[resistanceInterface_counter].waterMeterState)
   {
     switchInterfaceLED_External(resistanceInterface_counter, true);

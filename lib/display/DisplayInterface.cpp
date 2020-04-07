@@ -15,13 +15,16 @@ struct MeterData *p_MeterData;
 struct HeaterData *p_HeaterData;
 ButtonState *p_ButtonState;
 
+DisplayState e_DisplayState = display_Init;
+int selected_Interface;
+int selected_Entry;
+bool edit_enable = false;
+
 int display_state = 0;
 int showInterfaceTime_counter = 0;
 int showInterfaceTime_limit = 10;
 
-int selected_Interface = 0;
-int selected_Entry = 0;
-bool edit_enable = false;
+int menue_selectedItem = 0;
 
 DisplayInterface::DisplayInterface()
 {
@@ -54,7 +57,7 @@ void DisplayInterface::displayBootMessage()
     display.display();
 }
 
-void DisplayInterface::displayTimer(int nextState)
+void DisplayInterface::displayTimer(DisplayState next_displayState)
 {
 
     if (showInterfaceTime_counter < showInterfaceTime_limit)
@@ -64,93 +67,577 @@ void DisplayInterface::displayTimer(int nextState)
     else
     {
         showInterfaceTime_counter = 0;
-        display_state = nextState;
+        e_DisplayState = next_displayState;
     }
 }
 void DisplayInterface::displayStateMachine()
 {
-    switch (display_state)
+    switch (e_DisplayState)
     {
-    case 0: // Setup Display
-        display_state++;
+    case display_Init: // Setup Display
+        e_DisplayState = display_Boot;
         break;
-    case 1: // DisplayBoot Message
+    case display_Boot: // DisplayBoot Message
         displayBootMessage();
-        display_state = 10;
+        e_DisplayState = display_Interface1;
         break;
-    case 10: // Display Interface Meter 1
+    case display_Interface1: // Display Interface Meter 1
         displayMeter(0);
-        displayTimer(15);
+        displayTimer(display_Interface1);
+
         if (*p_ButtonState == select)
-            display_state = 20;
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_menue_select_SaveEdit;
+        }
         break;
-    case 11: // Display Interface Meter 2
+    case display_Interface2: // Display Interface Meter 2
         displayMeter(1);
-        displayTimer(12);
+        displayTimer(display_Interface3);
+
         if (*p_ButtonState == select)
-            display_state = 20;
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_menue_select_SaveEdit;
+        }
         break;
-    case 12: // Display Interface Meter 3
+    case display_Interface3: // Display Interface Meter 3
         displayMeter(2);
-        displayTimer(13);
+        displayTimer(display_Interface4);
+
         if (*p_ButtonState == select)
-            display_state = 20;
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_menue_select_SaveEdit;
+        }
         break;
-    case 13: // Display Interface Meter 4
+    case display_Interface4: // Display Interface Meter 4
         displayMeter(3);
-        displayTimer(15);
+        displayTimer(display_InterfaceHeater);
+
         if (*p_ButtonState == select)
-            display_state = 20;
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_menue_select_SaveEdit;
+        }
         break;
-    case 15: // Display Interface Heater
+    case display_InterfaceHeater: // Display Interface Heater
         displayHeater();
-        displayTimer(10);
+        displayTimer(display_Interface1);
         if (*p_ButtonState == select)
-            display_state = 20;
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_menue_select_SaveEdit;
+        }
         break;
-    case 20: //Menu EDIT SAVE
+    case display_menue_select_SaveEdit: //Menu SELECT EDIT SAVE
         menu_EditSave();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                e_DisplayState = display_Interface1;
+                break;
+            case 1:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_Interface;
+                break;
+            case 2:
+                e_DisplayState = displaySave;
+                break;
+            default:
+                break;
+            }
+        }
         break;
-    case 25: //Menu Select Temp, Res
+    case display_menue_select_Interface:
+        menu_selectInterface();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_SaveEdit;
+                break;
+            case 1:
+                selected_Entry = 0;
+                selected_Interface = 1;
+                e_DisplayState = display_menue_select_TempOrRes;
+                break;
+            case 2:
+                selected_Entry = 0;
+                selected_Interface = 2;
+                e_DisplayState = display_menue_select_TempOrRes;
+                break;
+            case 3:
+                selected_Entry = 0;
+                selected_Interface = 3;
+                e_DisplayState = display_menue_select_TempOrRes;
+                break;
+            case 4:
+                selected_Entry = 0;
+                selected_Interface = 4;
+                e_DisplayState = display_menue_select_TempOrRes;
+                break;
+            case 5:
+                selected_Entry = 0;
+                selected_Interface = 0;
+                e_DisplayState = display_menue_select_Voltage;
+                break;
+            default:
+                break;
+            }
+        }
+        break;
+    case display_menue_select_TempOrRes: //Menu Select Temp, Res
         menu_Select_TempRes();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_Interface;
+                break;
+            case 1:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_edit_Temperature;
+                break;
+            case 2:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_edit_Resistance;
+                break;
+            default:
+                break;
+            }
+        }
         break;
-    case 26: //Menu Select Voltage
+    case display_menue_select_Voltage: //Menu Select Voltage
         menu_Select_Voltage();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_Interface;
+                break;
+            case 1:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_edit_Voltage;
+                break;
+            default:
+                break;
+            }
+        }
         break;
-    case 30: //Edit Temperature
+    case display_menue_edit_Temperature: //Edit Temperature
         menu_Edit_Temperature();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_TempOrRes;
+                break;
+            case 1:
+                if (!edit_enable)
+                    edit_enable = true;
+                else
+                    edit_enable = false;
+                break;
+            case 2:
+                if (!edit_enable)
+                    edit_enable = true;
+                else
+                    edit_enable = false;
+                break;
+            default:
+                break;
+            }
+        }
         break;
-    case 31: //Edit Resistance
+    case display_menue_edit_Resistance: //Edit Resistance
         menu_Edit_Resistance();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_TempOrRes;
+                break;
+            case 1:
+                if (!edit_enable)
+                    edit_enable = true;
+                else
+                    edit_enable = false;
+                break;
+            default:
+                break;
+            }
+        }
         break;
-    case 32: //Edit Voltage
+    case display_menue_edit_Voltage: //Edit Voltage
         menu_Edit_Voltage();
+        if (*p_ButtonState == select)
+        {
+            *p_ButtonState = none;
+            switch (selected_Entry)
+            {
+            case 0:
+                selected_Entry = 0;
+                e_DisplayState = display_menue_select_Voltage;
+                break;
+            case 1:
+                if (!edit_enable)
+                    edit_enable = true;
+                else
+                    edit_enable = false;
+                break;
+            default:
+                break;
+            }
+        }
         break;
     default:
         break;
     }
 }
 
+int DisplayInterface::update_menue()
+{
+    if (*p_ButtonState == up)
+    {
+        *p_ButtonState = none;
+        return -1;
+    }
+    else if (*p_ButtonState == down)
+    {
+        *p_ButtonState = none;
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int DisplayInterface::check_bounds(int max, int min, int value)
+{
+    if ((selected_Entry + value) > max)
+    {
+        return max;
+    }
+    else if ((selected_Entry + value) < min)
+    {
+        return min;
+    }
+    else
+    {
+        return (selected_Entry + value);
+    }
+}
+
 void DisplayInterface::menu_EditSave()
 {
+
+    selected_Entry = check_bounds(2, 0, update_menue());
+
     display.clearDisplay();
 
     display.setTextSize(2);
     display.setCursor(0, 0);
     display.print("Menu");
 
+    display.setCursor(90, 5);
+
     display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
     display.setCursor(0, 20);
-    display.println("EDIT");
-    display.println("SAVE");
+
+    if (selected_Entry == 1)
+        display.println("> EDIT");
+    else
+        display.println("  EDIT");
+
+    if (selected_Entry == 2)
+        display.println("> SAVE");
+    else
+        display.println("  SAVE");
 
     display.display();
 }
-void DisplayInterface::menu_Select_TempRes() {}
-void DisplayInterface::menu_Select_Voltage() {}
-void DisplayInterface::menu_Edit_Temperature() {}
-void DisplayInterface::menu_Edit_Resistance() {}
-void DisplayInterface::menu_Edit_Voltage() {}
+
+void DisplayInterface::menu_selectInterface()
+{
+
+    selected_Entry = check_bounds(5, 0, update_menue());
+
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Edit");
+
+    display.setCursor(90, 5);
+
+    display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
+    display.setCursor(0, 20);
+
+    if (selected_Entry == 1)
+        display.println("> Meter 1");
+    else
+        display.println("  Meter 1");
+
+    if (selected_Entry == 2)
+        display.println("> Meter 2");
+    else
+        display.println("  Meter 2");
+
+    if (selected_Entry == 3)
+        display.println("> Meter 3");
+    else
+        display.println("  Meter 3");
+
+    if (selected_Entry == 4)
+        display.println("> Meter 4");
+    else
+        display.println("  Meter 4");
+
+    if (selected_Entry == 5)
+        display.println("> Heater");
+    else
+        display.println("  Heater");
+
+    display.display();
+}
+
+void DisplayInterface::menu_Select_TempRes()
+{
+    selected_Entry = check_bounds(2, 0, update_menue());
+
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Meter");
+    display.print(selected_Interface);
+
+    display.setCursor(90, 5);
+
+    display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
+    display.setCursor(0, 20);
+
+    if (selected_Entry == 1)
+        display.println("> Temperature");
+    else
+        display.println("  Temperature");
+
+    if (selected_Entry == 2)
+        display.println("> Resistance");
+    else
+        display.println("  Resistance");
+
+    display.display();
+}
+void DisplayInterface::menu_Select_Voltage()
+{
+    selected_Entry = check_bounds(1, 0, update_menue());
+
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Heater");
+
+    display.setCursor(90, 5);
+
+    display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
+    display.setCursor(0, 20);
+
+    if (selected_Entry == 1)
+        display.println("> Voltage");
+    else
+        display.println("  Voltage");
+
+    display.display();
+}
+
+void DisplayInterface::menu_Edit_Temperature()
+{
+    if (!edit_enable)
+        selected_Entry = check_bounds(2, 0, update_menue());
+    else
+    {
+        switch (selected_Entry)
+        {
+        case 1:
+            p_MeterData[selected_Interface].RREF_up -= update_menue();
+            break;
+        case 2:
+            p_MeterData[selected_Interface].RREF_down -= update_menue();
+        default:
+            break;
+        }
+    }
+
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Temp.");
+    display.print(selected_Interface);
+
+    display.setCursor(90, 5);
+
+    display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
+    display.setCursor(0, 20);
+
+    if (selected_Entry == 1 && !edit_enable)
+        display.print("> RREF. UP   = ");
+    else if (selected_Entry == 1 && edit_enable)
+        display.print("$ RREF. UP   = ");
+    else
+        display.print("  RREF. UP   = ");
+    display.println(p_MeterData[selected_Interface].RREF_up);
+    display.print("  Temp. UP   = ");
+    display.println(p_MeterData[selected_Interface].temperature_up_Celcius);
+
+    if (selected_Entry == 2 && !edit_enable)
+        display.print("> RREF. DOWN = ");
+
+    else if (selected_Entry == 2 && edit_enable)
+        display.print("$ RREF. DOWN = ");
+    else
+        display.print("  RREF. DOWN = ");
+    display.println(p_MeterData[selected_Interface].RREF_down);
+    display.print("  Temp. DOWN = ");
+    display.println(p_MeterData[selected_Interface].temperature_down_Celcius);
+
+    display.display();
+}
+void DisplayInterface::menu_Edit_Resistance()
+{
+    if (!edit_enable)
+        selected_Entry = check_bounds(1, 0, update_menue());
+    else
+    {
+        if (selected_Entry == 1)
+            p_MeterData[selected_Interface].mux_resistance_threshold -= update_menue();
+    }
+
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Res.");
+    display.print(selected_Interface);
+
+    display.setCursor(90, 5);
+
+    display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
+    display.setCursor(0, 20);
+
+    if (selected_Entry == 1 && !edit_enable)
+        display.print("> Trigg. Value = ");
+    else if (selected_Entry == 1 && edit_enable)
+        display.print("$ Trigg. Value = ");
+    else
+        display.print("  Trigg. Value = ");
+    display.println(p_MeterData[selected_Interface].mux_resistance_threshold);
+
+    display.print("  Analog Value = ");
+    display.println(p_MeterData[selected_Interface].mux_resistance_value);
+    display.print("  State Value = ");
+    display.println(p_MeterData[selected_Interface].waterMeterState);
+
+    display.display();
+}
+void DisplayInterface::menu_Edit_Voltage()
+{
+    if (!edit_enable)
+        selected_Entry = check_bounds(1, 0, update_menue());
+    else
+    {
+        if (selected_Entry == 1)
+            p_HeaterData->threshold_Analaog -= update_menue();
+    }
+
+    display.clearDisplay();
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Voltage");
+
+    display.setCursor(90, 5);
+
+    display.setTextSize(1);
+
+    if (selected_Entry == 0)
+        display.print("> Back");
+    else
+        display.print("  Back");
+
+    display.setCursor(0, 20);
+
+    if (selected_Entry == 1 && !edit_enable)
+        display.print("> Trigg. Value = ");
+    else if (selected_Entry == 1 && edit_enable)
+        display.print("$ Trigg. Value = ");
+    else
+        display.print("  Trigg. Value = ");
+    display.println(p_HeaterData->threshold_Analaog);
+
+    display.print("  Analog Value = ");
+    display.println(p_HeaterData->value_Analog);
+
+    display.display();
+}
 
 void DisplayInterface::displayMeter(int interface)
 {
@@ -375,433 +862,6 @@ void DisplayInterface::displayHeater()
     }
 
     display.display();
-}
-
-int DisplayInterface::displaySettingsSelectInterface(Adafruit_SSD1306 *display, String buttonState)
-{
-    if (buttonState == "UP")
-    {
-        selected_Interface--;
-    }
-
-    if (buttonState == "DOWN")
-    {
-        selected_Interface++;
-    }
-
-    // Do not go out of display
-    if (selected_Interface < 0)
-    {
-        selected_Interface = 5;
-    }
-    if (selected_Interface > 5)
-    {
-        selected_Interface = 0;
-    }
-
-    display->clearDisplay();
-
-    display->setCursor(0, 0);
-    display->setTextSize(2);
-    display->print("Config");
-
-    display->setTextSize(1);
-    if (selected_Interface == 0)
-    {
-        display->print("<- Back");
-        if (buttonState == "SELECT")
-        {
-            return 1;
-        }
-    }
-
-    display->println();
-    display->println();
-    display->println();
-
-    if (selected_Interface == 1)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-
-    display->println("Interface 1");
-
-    if (selected_Interface == 2)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-    display->println("Interface 2");
-
-    if (selected_Interface == 3)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-    display->println("Interface 3");
-
-    if (selected_Interface == 4)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-    display->println("Interface 4");
-
-    if (selected_Interface == 5)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-    display->println("== SAVE ==");
-
-    display->display();
-
-    if (buttonState.equals("SELECT"))
-    {
-        if (selected_Interface == 5)
-        {
-            return 100;
-        }
-        else
-        {
-            return 6;
-        }
-    }
-    else
-    {
-        return 5;
-    }
-}
-
-int DisplayInterface::displaySettingsSelectTempOrRes(Adafruit_SSD1306 *display, String buttonState)
-{
-
-    if (buttonState == "UP")
-    {
-        selected_Entry--;
-    }
-
-    if (buttonState == "DOWN")
-    {
-        selected_Entry++;
-    }
-
-    // Do not go out of display
-    if (selected_Entry < 0)
-    {
-        selected_Entry = 3;
-    }
-    if (selected_Entry > 3)
-    {
-        selected_Entry = 0;
-    }
-
-    display->clearDisplay();
-
-    display->setCursor(0, 0);
-    display->setTextSize(2);
-    display->print("CONF ");
-    display->print(selected_Interface);
-
-    display->setTextSize(1);
-    if (selected_Entry == 0)
-    {
-        display->print("<- Back");
-    }
-
-    display->println();
-    display->println();
-    display->println();
-
-    if (selected_Entry == 1)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-
-    display->println("Temperature");
-
-    if (selected_Entry == 2)
-    {
-        display->print("- ");
-    }
-    else
-    {
-        display->print("  ");
-    }
-    display->println("Resistance");
-
-    display->display();
-
-    if (buttonState.equals("SELECT"))
-    {
-        switch (selected_Entry)
-        {
-        case 0:
-            return 5;
-            break;
-        case 1:
-            return 7;
-            break;
-        case 2:
-            return 91;
-            break;
-
-        default:
-            break;
-        }
-    }
-    else
-    {
-        return 6;
-    }
-}
-
-int DisplayInterface::displayConfigTemperature(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4])
-{
-    if (buttonState == "UP")
-    {
-        if (!edit_enable)
-        {
-            selected_Entry--;
-        }
-        else
-        {
-            if (selected_Entry == 1)
-            {
-                meterData[selected_Interface - 1].RREF_up++;
-            }
-            if (selected_Entry == 2)
-            {
-                meterData[selected_Interface - 1].RREF_down++;
-            }
-        }
-    }
-
-    if (buttonState == "DOWN")
-    {
-        if (!edit_enable)
-        {
-            selected_Entry++;
-        }
-        else
-        {
-            if (selected_Entry == 1)
-            {
-                meterData[selected_Interface - 1].RREF_up--;
-            }
-            if (selected_Entry == 2)
-            {
-                meterData[selected_Interface - 1].RREF_down--;
-            }
-        }
-    }
-
-    if (buttonState == "SELECT")
-    {
-        if (!edit_enable)
-        {
-            edit_enable = true;
-        }
-        else
-        {
-            edit_enable = false;
-        }
-    }
-
-    // Do not go out of display
-    if (selected_Entry < 0)
-    {
-        selected_Entry = 2;
-    }
-    if (selected_Entry > 2)
-    {
-        selected_Entry = 0;
-    }
-
-    display->clearDisplay();
-
-    display->setCursor(0, 0);
-    display->setTextSize(2);
-    display->print("CONF ");
-    display->print(selected_Interface);
-    display->setTextSize(1);
-    if (selected_Entry == 0)
-    {
-        display->print("<- Back");
-        if (buttonState == "SELECT")
-        {
-            return 6;
-        }
-    }
-    display->println();
-    display->println();
-    display->println();
-
-    if (selected_Entry == 1)
-    {
-        if (!edit_enable)
-        {
-            display->print("- ");
-        }
-        else
-        {
-            display->print("+ ");
-        }
-    }
-    else
-    {
-        display->print("  ");
-    }
-
-    display->print("T_UP_RREF:   ");
-    display->println(meterData[selected_Interface - 1].RREF_up);
-    display->print("  T_UP:        ");
-    display->println(meterData[selected_Interface - 1].temperature_up_Celcius);
-
-    if (selected_Entry == 2)
-    {
-        if (!edit_enable)
-        {
-            display->print("- ");
-        }
-        else
-        {
-            display->print("+ ");
-        }
-    }
-    else
-    {
-        display->print("  ");
-    }
-
-    display->print("T_DOWN_RREF: ");
-    display->println(meterData[selected_Interface - 1].RREF_down);
-    display->print("  T_DOWN:      ");
-    display->println(meterData[selected_Interface - 1].temperature_down_Celcius);
-
-    display->display();
-    return 7;
-}
-
-int DisplayInterface::displayConfigResistance(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4])
-{
-    if (buttonState == "UP")
-    {
-        if (!edit_enable)
-        {
-            selected_Entry--;
-        }
-        else
-        {
-            if (selected_Entry == 1)
-            {
-                meterData[selected_Interface - 1].mux_resistance_threshold++;
-            }
-        }
-    }
-
-    if (buttonState == "DOWN")
-    {
-        if (!edit_enable)
-        {
-            selected_Entry++;
-        }
-        else
-        {
-            if (selected_Entry == 1)
-            {
-                meterData[selected_Interface - 1].mux_resistance_threshold--;
-            }
-        }
-    }
-
-    if (buttonState == "SELECT")
-    {
-        if (!edit_enable)
-        {
-            edit_enable = true;
-        }
-        else
-        {
-            edit_enable = false;
-        }
-    }
-
-    // Do not go out of display
-    if (selected_Entry < 0)
-    {
-        selected_Entry = 1;
-    }
-    if (selected_Entry > 1)
-    {
-        selected_Entry = 0;
-    }
-
-    display->clearDisplay();
-
-    display->setCursor(0, 0);
-    display->setTextSize(2);
-    display->print("CONF ");
-    display->print(selected_Interface);
-    display->setTextSize(1);
-    if (selected_Entry == 0)
-    {
-        display->print("<- Back");
-        if (buttonState == "SELECT")
-        {
-            return 6;
-        }
-    }
-    display->println();
-    display->println();
-    display->println();
-    display->println("Resistance:");
-    display->println("");
-    if (selected_Entry == 1)
-    {
-        if (!edit_enable)
-        {
-            display->print("- ");
-        }
-        else
-        {
-            display->print("+ ");
-        }
-    }
-    else
-    {
-        display->print("  ");
-    }
-
-    display->print("Threshold: ");
-    display->println(meterData[selected_Interface - 1].mux_resistance_threshold);
-    display->print("  Value:     ");
-    display->println(meterData[selected_Interface - 1].mux_resistance_value);
-    display->print("  State:     ");
-    display->println(meterData[selected_Interface - 1].waterMeterState);
-
-    display->display();
-    return 91;
 }
 
 void DisplayInterface::displaySavingScreen(Adafruit_SSD1306 *display)

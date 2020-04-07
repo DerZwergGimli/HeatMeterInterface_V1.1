@@ -61,6 +61,9 @@ struct MeterData
     int mux_down;
     int mux_resistance;
     int mux_resistance_threshold;
+    double counterValue_J_delta;
+    double counterValue_MWh_delta;
+    double counterValue_m3_delta;
     double counterValue_m3;
     double counterValue_J;
     double counterValue_MWh;
