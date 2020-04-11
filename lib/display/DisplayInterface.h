@@ -3,7 +3,7 @@
 #include "Adafruit_SSD1306.h"
 #include "ConfigInterface.h"
 
-enum DisplayState
+enum DisplayMenueState
 {
     display_Init,
     display_Boot,
@@ -22,6 +22,7 @@ enum DisplayState
     display_menue_edit_Voltage,
     display_menue_edit_InterfacHeater,
     displaySave,
+    displayOFF,
 };
 
 enum MenueDisplayState
@@ -37,9 +38,9 @@ public:
     void init(struct Configuration *config, struct MeterData *meterData, struct HeaterData *heaterData, ButtonState *buttonState);
     void displayBootMessage();
 
-    void displayTimer(DisplayState next_displayState);
+    void displayTimer(DisplayMenueState next_displayState);
 
-    void displayStateMachine();
+    int displayStateMachine();
 
     void displayMeter(int interface);
     void displayHeater();
@@ -49,7 +50,7 @@ public:
     //int dsiplayConfigInterface(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);
     int displayConfigTemperature(Adafruit_SSD1306 *display, String buttonState, struct MeterData meterData[4]);
     int displayConfigResistance(Adafruit_SSD1306 *display, String buttonState, struct MeterData meater[4]);
-    void displaySavingScreen(Adafruit_SSD1306 *display);
+    void displaySavingScreen();
 
     int update_menue();
     int check_bounds(int max, int min, int value);

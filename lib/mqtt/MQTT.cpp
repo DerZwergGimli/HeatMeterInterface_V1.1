@@ -306,8 +306,8 @@ void send()
             case 23:
                 if (heaterDataOld.runtime_on_current != p_heaterData->runtime_on_current)
                 {
-                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_on_current";
-                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_on_current=") + String(p_heaterData->runtime_on_current);
+                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_on_current_ms";
+                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_on_current_ms=") + String(p_heaterData->runtime_on_current);
                     packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
                     sendingLoopDone = true;
                 }
@@ -316,8 +316,8 @@ void send()
             case 24:
                 if (heaterDataOld.runtime_off_current != p_heaterData->runtime_off_current)
                 {
-                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_off_current";
-                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_off_current=") + String(p_heaterData->runtime_off_current);
+                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_off_current_ms";
+                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_off_current_ms=") + String(p_heaterData->runtime_off_current);
                     packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
                     sendingLoopDone = true;
                 }
@@ -326,8 +326,8 @@ void send()
             case 25:
                 if (heaterDataOld.runtime_on_previous != p_heaterData->runtime_on_previous)
                 {
-                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_on_previous";
-                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_on_previous=") + String(p_heaterData->runtime_on_previous);
+                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_on_previous_ms";
+                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_on_previous_ms=") + String(p_heaterData->runtime_on_previous);
                     packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
                     sendingLoopDone = true;
                 }
@@ -336,8 +336,8 @@ void send()
             case 26:
                 if (heaterDataOld.runtime_off_previous != p_heaterData->runtime_off_previous)
                 {
-                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_off_previous";
-                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_off_previous=") + String(p_heaterData->runtime_off_previous);
+                    topic = configurationLocal->device_name + "/" + String(p_heaterData->heater_name) + "/runtime_off_previous_ms";
+                    message = String("Heater") + String(p_heaterData->heater_ID) + String(" runtime_off_previous_ms=") + String(p_heaterData->runtime_off_previous);
                     packageID = mqttClient.publish(topic.c_str(), qos, retain, message.c_str());
                     sendingLoopDone = true;
                 }

@@ -1,4 +1,5 @@
 #include "ConfigInterface.h"
+#define ARDUINOJSON_USE_DOUBLE 1
 #include <ArduinoJson.h>
 #include <ArduinoLog.h>
 #include "FS.h"
@@ -129,9 +130,11 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
 
 bool ConfigInterface::saveConfig(struct Configuration *config, struct MeterData (&meterData)[4], struct HeaterData *heaterData)
 {
-    StaticJsonDocument<1072> doc;
+    const size_t capacity = JSON_OBJECT_SIZE(66) + 1460;
+    DynamicJsonDocument doc(capacity);
+    //StaticJsonDocument<1072> doc;
 
-    doc["Device_Name"] = config->device_Name;
+    doc["Device_Name"] = config->device_name;
     doc["Device_ID"] = config->device_ID;
     doc["WIFI_SSID"] = config->wifi_SSID;
     doc["WIFI_PASSWORD"] = config->wifi_Password;
@@ -180,17 +183,17 @@ bool ConfigInterface::saveConfig(struct Configuration *config, struct MeterData 
     doc["Meter_3_CounterValue_J"] = meterData[2].counterValue_J;
     doc["Meter_3_CounterValue_MWh"] = meterData[2].counterValue_MWh;
 
-    doc["Meter_4_ID"] = meterData[3].meter_ID;
-    doc["Meter_4_Name"] = meterData[3].meter_name;
-    doc["Meter_4_RREF_T1"] = meterData[3].RREF_up;
-    doc["Meter_4_RREF_T2"] = meterData[3].RREF_down;
-    doc["Meter_4_MUX_T1"] = meterData[3].mux_up;
-    doc["Meter_4_MUX_T2"] = meterData[3].mux_down;
-    doc["Meter_4_MUX_R"] = meterData[3].mux_resistance;
-    doc["Meter_4_MUX_R_Threshold"] = meterData[3].mux_resistance_threshold;
-    doc["Meter_4_CounterValue_m3"] = meterData[3].counterValue_m3;
-    doc["Meter_4_CounterValue_J"] = meterData[3].counterValue_J;
-    doc["Meter_4_CounterValue_MWh"] = meterData[3].counterValue_MWh;
+    doc["Meter_4_ID"] = meterData[4].meter_ID;
+    doc["Meter_4_Name"] = meterData[4].meter_name;
+    doc["Meter_4_RREF_T1"] = meterData[4].RREF_up;
+    doc["Meter_4_RREF_T2"] = meterData[4].RREF_down;
+    doc["Meter_4_MUX_T1"] = meterData[4].mux_up;
+    doc["Meter_4_MUX_T2"] = meterData[4].mux_down;
+    doc["Meter_4_MUX_R"] = meterData[4].mux_resistance;
+    doc["Meter_4_MUX_R_Threshold"] = meterData[4].mux_resistance_threshold;
+    doc["Meter_4_CounterValue_m3"] = meterData[4].counterValue_m3;
+    doc["Meter_4_CounterValue_J"] = meterData[4].counterValue_J;
+    doc["Meter_4_CounterValue_MWh"] = meterData[4].counterValue_MWh;
 
     doc["Heater_ID"] = heaterData->heater_ID;
     doc["Heater_Name"] = heaterData->heater_Name;

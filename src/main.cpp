@@ -114,7 +114,8 @@ void displayDisplay_Callback()
   shiftRegisterIO.led_READY(true);
   shiftRegisterIO.led_READY(false);
   shiftRegisterIO.toggleDisplay(true);
-  displayInterface.displayStateMachine();
+  if (displayInterface.displayStateMachine())
+    configInterface.saveConfig(&config, meterData, &heaterData);
 }
 
 void measureButtonState_Callback()

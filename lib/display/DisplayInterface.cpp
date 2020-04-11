@@ -15,7 +15,7 @@ struct MeterData *p_MeterData;
 struct HeaterData *p_HeaterData;
 ButtonState *p_ButtonState;
 
-DisplayState e_DisplayState = display_Init;
+DisplayMenueState e_DisplayState = display_Init;
 int selected_Interface;
 int selected_Entry;
 bool edit_enable = false;
@@ -57,7 +57,7 @@ void DisplayInterface::displayBootMessage()
     display.display();
 }
 
-void DisplayInterface::displayTimer(DisplayState next_displayState)
+void DisplayInterface::displayTimer(DisplayMenueState next_displayState)
 {
 
     if (showInterfaceTime_counter < showInterfaceTime_limit)
@@ -66,12 +66,15 @@ void DisplayInterface::displayTimer(DisplayState next_displayState)
     }
     else
     {
-        showInterfaceTime_counter = 0;
+        //showInterfaceTime_counter = 0;
         e_DisplayState = next_displayState;
     }
 }
-void DisplayInterface::displayStateMachine()
+int DisplayInterface::displayStateMachine()
 {
+
+    int doSave = 0;
+
     switch (e_DisplayState)
     {
     case display_Init: // Setup Display
@@ -83,51 +86,102 @@ void DisplayInterface::displayStateMachine()
         break;
     case display_Interface1: // Display Interface Meter 1
         displayMeter(0);
-        displayTimer(display_Interface1);
+        //displayTimer(displayOFF);
 
         if (*p_ButtonState == select)
         {
             *p_ButtonState = none;
             e_DisplayState = display_menue_select_SaveEdit;
+        }
+        if (*p_ButtonState == up)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_InterfaceHeater;
+        }
+        if (*p_ButtonState == down)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface2;
         }
         break;
     case display_Interface2: // Display Interface Meter 2
         displayMeter(1);
-        displayTimer(display_Interface3);
+        //displayTimer(displayOFF);
 
         if (*p_ButtonState == select)
         {
             *p_ButtonState = none;
             e_DisplayState = display_menue_select_SaveEdit;
+        }
+        if (*p_ButtonState == up)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface1;
+        }
+        if (*p_ButtonState == down)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface3;
         }
         break;
     case display_Interface3: // Display Interface Meter 3
         displayMeter(2);
-        displayTimer(display_Interface4);
+        //displayTimer(displayOFF);
 
         if (*p_ButtonState == select)
         {
             *p_ButtonState = none;
             e_DisplayState = display_menue_select_SaveEdit;
+        }
+        if (*p_ButtonState == up)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface2;
+        }
+        if (*p_ButtonState == down)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface4;
         }
         break;
     case display_Interface4: // Display Interface Meter 4
         displayMeter(3);
-        displayTimer(display_InterfaceHeater);
+        //displayTimer(displayOFF);
 
         if (*p_ButtonState == select)
         {
             *p_ButtonState = none;
             e_DisplayState = display_menue_select_SaveEdit;
         }
+        if (*p_ButtonState == up)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface3;
+        }
+        if (*p_ButtonState == down)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_InterfaceHeater;
+        }
         break;
     case display_InterfaceHeater: // Display Interface Heater
         displayHeater();
-        displayTimer(display_Interface1);
+        //displayTimer(displayOFF);
+
         if (*p_ButtonState == select)
         {
             *p_ButtonState = none;
             e_DisplayState = display_menue_select_SaveEdit;
+        }
+        if (*p_ButtonState == up)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface4;
+        }
+        if (*p_ButtonState == down)
+        {
+            *p_ButtonState = none;
+            e_DisplayState = display_Interface1;
         }
         break;
     case display_menue_select_SaveEdit: //Menu SELECT EDIT SAVE
@@ -145,6 +199,8 @@ void DisplayInterface::displayStateMachine()
                 e_DisplayState = display_menue_select_Interface;
                 break;
             case 2:
+                selected_Entry = 0;
+                doSave = 1;
                 e_DisplayState = displaySave;
                 break;
             default:
@@ -309,9 +365,17 @@ void DisplayInterface::displayStateMachine()
             }
         }
         break;
+    case displaySave:
+        displaySavingScreen();
+        e_DisplayState = display_Interface2;
+        break;
     default:
         break;
     }
+
+    if (doSave)
+        return 1;
+    return 0;
 }
 
 int DisplayInterface::update_menue()
@@ -505,10 +569,10 @@ void DisplayInterface::menu_Edit_Temperature()
         switch (selected_Entry)
         {
         case 1:
-            p_MeterData[selected_Interface].RREF_up -= update_menue();
+            p_MeterData[selected_Interface - 1].RREF_up -= (update_menue() * 0.1);
             break;
         case 2:
-            p_MeterData[selected_Interface].RREF_down -= update_menue();
+            p_MeterData[selected_Interface - 1].RREF_down -= (update_menue() * 0.1);
         default:
             break;
         }
@@ -538,9 +602,9 @@ void DisplayInterface::menu_Edit_Temperature()
         display.print("$ RREF. UP   = ");
     else
         display.print("  RREF. UP   = ");
-    display.println(p_MeterData[selected_Interface].RREF_up);
+    display.println(p_MeterData[selected_Interface - 1].RREF_up);
     display.print("  Temp. UP   = ");
-    display.println(p_MeterData[selected_Interface].temperature_up_Celcius);
+    display.println(p_MeterData[selected_Interface - 1].temperature_up_Celcius);
 
     if (selected_Entry == 2 && !edit_enable)
         display.print("> RREF. DOWN = ");
@@ -549,9 +613,9 @@ void DisplayInterface::menu_Edit_Temperature()
         display.print("$ RREF. DOWN = ");
     else
         display.print("  RREF. DOWN = ");
-    display.println(p_MeterData[selected_Interface].RREF_down);
+    display.println(p_MeterData[selected_Interface - 1].RREF_down);
     display.print("  Temp. DOWN = ");
-    display.println(p_MeterData[selected_Interface].temperature_down_Celcius);
+    display.println(p_MeterData[selected_Interface - 1].temperature_down_Celcius);
 
     display.display();
 }
@@ -562,7 +626,7 @@ void DisplayInterface::menu_Edit_Resistance()
     else
     {
         if (selected_Entry == 1)
-            p_MeterData[selected_Interface].mux_resistance_threshold -= update_menue();
+            p_MeterData[selected_Interface - 1].mux_resistance_threshold -= update_menue();
     }
 
     display.clearDisplay();
@@ -589,12 +653,12 @@ void DisplayInterface::menu_Edit_Resistance()
         display.print("$ Trigg. Value = ");
     else
         display.print("  Trigg. Value = ");
-    display.println(p_MeterData[selected_Interface].mux_resistance_threshold);
+    display.println(p_MeterData[selected_Interface - 1].mux_resistance_threshold);
 
     display.print("  Analog Value = ");
-    display.println(p_MeterData[selected_Interface].mux_resistance_value);
+    display.println(p_MeterData[selected_Interface - 1].mux_resistance_value);
     display.print("  State Value = ");
-    display.println(p_MeterData[selected_Interface].waterMeterState);
+    display.println(p_MeterData[selected_Interface - 1].waterMeterState);
 
     display.display();
 }
@@ -864,13 +928,13 @@ void DisplayInterface::displayHeater()
     display.display();
 }
 
-void DisplayInterface::displaySavingScreen(Adafruit_SSD1306 *display)
+void DisplayInterface::displaySavingScreen()
 {
-    display->clearDisplay();
+    display.clearDisplay();
 
-    display->setCursor(0, 0);
-    display->setTextSize(2);
-    display->print("SAVING... ");
+    display.setCursor(0, 0);
+    display.setTextSize(2);
+    display.print("SAVING... ");
 
-    display->display();
+    display.display();
 }
