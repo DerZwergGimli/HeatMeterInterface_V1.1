@@ -76,6 +76,7 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
     meterData[0].counterValue_m3 = doc["Meter_1_CounterValue_m3"];
     meterData[0].counterValue_J = doc["Meter_1_CounterValue_J"];
     meterData[0].counterValue_MWh = doc["Meter_1_CounterValue_MWh"];
+    meterData[0].counterValue_MWh_hardware = doc["Meter_1_CounterValue_MWh_hardware"];
 
     meterData[1].meter_ID = doc["Meter_2_ID"];
     meterData[1].meter_name = doc["Meter_2_Name"];
@@ -88,6 +89,7 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
     meterData[1].counterValue_m3 = doc["Meter_2_CounterValue_m3"];
     meterData[1].counterValue_J = doc["Meter_2_CounterValue_J"];
     meterData[1].counterValue_MWh = doc["Meter_2_CounterValue_MWh"];
+    meterData[1].counterValue_MWh_hardware = doc["Meter_2_CounterValue_MWh_hardware"];
 
     meterData[2].meter_ID = doc["Meter_3_ID"];
     meterData[2].meter_name = doc["Meter_3_Name"];
@@ -100,6 +102,7 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
     meterData[2].counterValue_m3 = doc["Meter_3_CounterValue_m3"];
     meterData[2].counterValue_J = doc["Meter_3_CounterValue_J"];
     meterData[2].counterValue_MWh = doc["Meter_3_CounterValue_MWh"];
+    meterData[2].counterValue_MWh_hardware = doc["Meter_3_CounterValue_MWh_hardware"];
 
     meterData[3].meter_ID = doc["Meter_4_ID"];
     meterData[3].meter_name = doc["Meter_4_Name"];
@@ -112,6 +115,7 @@ bool ConfigInterface::loadConfig(struct Configuration *config, struct MeterData 
     meterData[3].counterValue_m3 = doc["Meter_4_CounterValue_m3"];
     meterData[3].counterValue_J = doc["Meter_4_CounterValue_J"];
     meterData[3].counterValue_MWh = doc["Meter_4_CounterValue_MWh"];
+    meterData[3].counterValue_MWh_hardware = doc["Meter_4_CounterValue_MWh_hardware"];
 
     heaterData->heater_ID = doc["Heater_ID"];
     heaterData->heater_Name = doc["Heater_Name"];

@@ -67,6 +67,7 @@ struct MeterData
     double counterValue_m3;
     double counterValue_J;
     double counterValue_MWh;
+    double counterValue_MWh_hardware;
 
     bool waterMeterState;
     long hardware_CounterValue;

@@ -366,6 +366,28 @@ void ShiftRegisterIO::toggleDisplay(bool toggle)
     write();
 }
 
+void ShiftRegisterIO::counter_RJX(int x, bool toggle)
+{
+    switch (x)
+    {
+    case 0:
+        sr_io.RJ1_Counter = toggle;
+        break;
+    case 1:
+        sr_io.RJ2_Counter = toggle;
+        break;
+    case 2:
+        sr_io.RJ3_Counter = toggle;
+        break;
+    case 3:
+        sr_io.RJ4_Counter = toggle;
+        break;
+    default:
+        break;
+    }
+    write();
+}
+
 void ShiftRegisterIO::led_ERROR(bool toggle)
 {
 

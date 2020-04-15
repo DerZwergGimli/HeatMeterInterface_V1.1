@@ -156,17 +156,28 @@ void measureInterfaceResistance_Callback()
   switchInterfaceLED(resistanceInterface_counter, true);
   shiftRegisterIO.checkMeterResistance(&meterData[resistanceInterface_counter]);
 
+  // Do Calucalte the consumed heat energy
   if (meterData[resistanceInterface_counter].mux_resistance_edgeDetect)
   {
     meterData[resistanceInterface_counter].counterValue_m3 += (5.0 / 1000.0);
-    meterData[resistanceInterface_counter].counterValue_m3_delta += (5.0 / 1000.0);
+    meterData[resistanceInterface_counter].counterValue_m3_delta = (5.0 / 1000.0);
     float deltaEnergy = (4200.0 * 5.0 / 1000.0 * (meterData[resistanceInterface_counter].temperature_up_Celcius_mean - meterData[resistanceInterface_counter].temperature_down_Celcius_mean));
     meterData[resistanceInterface_counter].counterValue_J += deltaEnergy;
-    meterData[resistanceInterface_counter].counterValue_J_delta += deltaEnergy;
+    meterData[resistanceInterface_counter].counterValue_J_delta = deltaEnergy;
     meterData[resistanceInterface_counter].counterValue_MWh += (deltaEnergy * 0.000000000277778);
-    meterData[resistanceInterface_counter].counterValue_MWh += (deltaEnergy * 0.000000000277778);
+    meterData[resistanceInterface_counter].counterValue_MWh_delta = (deltaEnergy * 0.000000000277778);
   }
 
+  // Count up if needed the hardware counter
+  if (meterData[resistanceInterface_counter].counterValue_MWh_hardware < meterData[resistanceInterface_counter].counterValue_MWh)
+  {
+    meterData[resistanceInterface_counter].counterValue_MWh_hardware += 0.001;
+    shiftRegisterIO.counter_RJX(resistanceInterface_counter, true);
+    delay(5);
+    shiftRegisterIO.counter_RJX(resistanceInterface_counter, false);
+  }
+
+  // Switch the external LED on or off based on the flow meter return state
   if (meterData[resistanceInterface_counter].waterMeterState)
   {
     switchInterfaceLED_External(resistanceInterface_counter, true);

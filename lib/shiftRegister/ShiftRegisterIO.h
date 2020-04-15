@@ -56,6 +56,9 @@ public:
     // Enable/Disbale Tasks
     void toggleDisplay(bool toggle);
 
+    // HW Counter
+    void counter_RJX(int x, bool toggle);
+
     // LED IO_Config
     void led_ERROR(bool toggle);
     void led_READY(bool toggle);
