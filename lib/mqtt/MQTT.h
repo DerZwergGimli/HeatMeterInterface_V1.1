@@ -3,10 +3,9 @@
 #include "ConfigInterface.h"
 #include "ShiftRegisterIO.h"
 #include "ConfigInterface.h"
-
+#include "AsyncMqttClient.h"
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
-#include <AsyncMqttClient.h>
 
 class MQTT
 {
